@@ -16,9 +16,7 @@
   .pilot-badge { margin-left: auto; background: #1e3a5f; color: #60b3ff; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; }
 
   .main { display: flex; flex: 1; overflow: hidden; }
-
-  .sidebar { width: 280px; background: #13151f; padding: 16px; overflow-y: auto; border-right: 1px solid #2a2d3e; display: flex; flex-direction: column; gap: 16px; }
-
+  .sidebar { width: 260px; background: #13151f; padding: 16px; overflow-y: auto; border-right: 1px solid #2a2d3e; display: flex; flex-direction: column; gap: 14px; }
   .panel { background: #1a1d2e; border-radius: 10px; padding: 14px; }
   .panel h3 { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
 
@@ -32,19 +30,17 @@
   .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; }
   .legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 
-  .ranking { }
   .rank-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.15s; }
   .rank-item:hover { background: #252840; }
   .rank-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
   .rank-info { flex: 1; }
   .rank-name { font-size: 0.82rem; font-weight: 500; }
   .rank-sub { font-size: 0.72rem; color: #888; }
-  .rank-score { font-size: 1rem; font-weight: 700; color: #ff6b6b; }
+  .rank-score { font-size: 1rem; font-weight: 700; }
 
   #map { flex: 1; }
 
-  .detail-panel { width: 280px; background: #13151f; padding: 16px; overflow-y: auto; border-left: 1px solid #2a2d3e; }
-  .detail-panel h2 { font-size: 1rem; color: #00d4ff; margin-bottom: 4px; }
+  .detail-panel { width: 300px; background: #13151f; padding: 16px; overflow-y: auto; border-left: 1px solid #2a2d3e; }
   .detail-hint { color: #555; font-size: 0.85rem; margin-top: 40px; text-align: center; }
 
   .score-big { text-align: center; margin: 16px 0; }
@@ -76,6 +72,25 @@
   .ai-profile { background: #1e2a3e; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
   .ai-profile .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
   .ai-profile .value { font-size: 0.88rem; color: #60b3ff; font-weight: 600; margin-top: 2px; }
+
+  /* Scenario Comparison */
+  .compare-section { margin-top: 14px; border-top: 1px solid #2a2d3e; padding-top: 14px; }
+  .compare-title { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .compare-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; background: #1a1d2e; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
+  .compare-row:hover { border-color: #2a2d3e; }
+  .compare-row.best { border-color: #00d4ff; background: #1e2a3e; }
+  .compare-row .c-icon { font-size: 1.1rem; }
+  .compare-row .c-label { flex: 1; font-size: 0.85rem; }
+  .compare-row .c-score { font-size: 1.1rem; font-weight: 800; min-width: 36px; text-align: right; }
+  .compare-row .c-badge { }
+  
+  .score-bar-wrap { flex: 1; margin: 0 8px; }
+  .score-bar-bg { background: #252840; border-radius: 4px; height: 6px; }
+  .score-bar-fg { height: 6px; border-radius: 4px; transition: width 0.6s ease; }
+
+  .best-label { font-size: 0.68rem; color: #00d4ff; font-weight: 600; margin-top: 8px; text-align: center; }
+
+  .section-divider { border: none; border-top: 1px solid #2a2d3e; margin: 12px 0; }
 </style>
 </head>
 <body>
@@ -89,19 +104,18 @@
 </header>
 
 <div class="main">
-  <!-- Sidebar -->
   <div class="sidebar">
     <div class="panel">
       <h3>Scenario</h3>
-      <div class="scenario-btn active" onclick="setScenario('general')">
+      <div class="scenario-btn active" onclick="setScenario('general', this)">
         <span class="icon">🌐</span>
         <div><div class="label">General Access</div><div class="sub">Overall community connectivity</div></div>
       </div>
-      <div class="scenario-btn" onclick="setScenario('education')">
+      <div class="scenario-btn" onclick="setScenario('education', this)">
         <span class="icon">📚</span>
         <div><div class="label">Education</div><div class="sub">Schools + students</div></div>
       </div>
-      <div class="scenario-btn" onclick="setScenario('healthcare')">
+      <div class="scenario-btn" onclick="setScenario('healthcare', this)">
         <span class="icon">🏥</span>
         <div><div class="label">Healthcare</div><div class="sub">Clinics + hospitals</div></div>
       </div>
@@ -117,21 +131,18 @@
 
     <div class="panel">
       <h3>Top 5 Priority Areas</h3>
-      <div class="ranking" id="ranking"></div>
+      <div id="ranking"></div>
     </div>
   </div>
 
-  <!-- Map -->
   <div id="map"></div>
 
-  <!-- Detail Panel -->
   <div class="detail-panel" id="detail-panel">
-    <p class="detail-hint">👆 Click on any area to see details</p>
+    <p class="detail-hint">👆 Click on any area to see details and scenario comparison</p>
   </div>
 </div>
 
 <script>
-// === Load Data ===
 let geojsonData = null;
 let currentScenario = 'general';
 let geojsonLayer = null;
@@ -139,13 +150,11 @@ let geojsonLayer = null;
 const scoreField = { general: 'score_general', education: 'score_education', healthcare: 'score_healthcare' };
 const priorityField = { general: 'priority_general', education: 'priority_education', healthcare: 'priority_healthcare' };
 
-// === Map Init ===
 const map = L.map('map').setView([3.38, 101.29], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap © CARTO', maxZoom: 18
 }).addTo(map);
 
-// === Color ===
 function getColor(score, hasData) {
   if (!hasData || score === null || score === undefined) return '#333344';
   if (score >= 70) return '#ff4757';
@@ -153,26 +162,17 @@ function getColor(score, hasData) {
   return '#06d6a0';
 }
 
-function getOpacity(score, hasData) {
-  if (!hasData) return 0.3;
-  return 0.65;
-}
-
-// === Style ===
 function styleFeature(feature) {
   const p = feature.properties;
   const score = p[scoreField[currentScenario]];
   const hasData = p.avg_download_mbps !== null;
   return {
     fillColor: getColor(score, hasData),
-    fillOpacity: getOpacity(score, hasData),
-    color: '#ffffff',
-    weight: 0.5,
-    opacity: 0.4
+    fillOpacity: hasData ? 0.65 : 0.3,
+    color: '#ffffff', weight: 0.5, opacity: 0.4
   };
 }
 
-// === Render ===
 function renderMap() {
   if (geojsonLayer) map.removeLayer(geojsonLayer);
   geojsonLayer = L.geoJSON(geojsonData, {
@@ -186,7 +186,6 @@ function renderMap() {
   updateRanking();
 }
 
-// === Ranking ===
 function updateRanking() {
   const field = scoreField[currentScenario];
   const sorted = geojsonData.features
@@ -212,12 +211,71 @@ function updateRanking() {
   }).join('');
 }
 
-// === Detail Panel ===
+function getPriorityBadge(prio) {
+  if (!prio || prio === 'No Data') return `<span class="badge badge-nodata">No Data</span>`;
+  const cls = { High:'badge-high', Medium:'badge-medium', Low:'badge-low' }[prio] || 'badge-nodata';
+  return `<span class="badge ${cls}">${prio}</span>`;
+}
+
+function getScoreColor(score) {
+  if (score === null || score === undefined) return '#555';
+  if (score >= 70) return '#ff4757';
+  if (score >= 40) return '#ffd166';
+  return '#06d6a0';
+}
+
+function buildCompareSection(p) {
+  const scores = {
+    general: p.score_general,
+    education: p.score_education,
+    healthcare: p.score_healthcare
+  };
+  const hasData = p.avg_download_mbps !== null;
+  if (!hasData) return '';
+
+  const scenarios = [
+    { key: 'general', icon: '🌐', label: 'General Access' },
+    { key: 'education', icon: '📚', label: 'Education' },
+    { key: 'healthcare', icon: '🏥', label: 'Healthcare' }
+  ];
+
+  // Find best scenario
+  const validScores = scenarios.filter(s => scores[s.key] !== null);
+  const bestKey = validScores.reduce((a, b) => scores[a.key] > scores[b.key] ? a : b, validScores[0])?.key;
+
+  const rows = scenarios.map(s => {
+    const score = scores[s.key];
+    const isBest = s.key === bestKey;
+    const scoreDisp = score !== null ? Math.round(score) : '—';
+    const color = getScoreColor(score);
+    const barWidth = score !== null ? score : 0;
+    return `
+      <div class="compare-row ${isBest ? 'best' : ''}" onclick="setScenario('${s.key}', document.querySelectorAll('.scenario-btn')[${scenarios.findIndex(x=>x.key===s.key)}])">
+        <span class="c-icon">${s.icon}</span>
+        <span class="c-label">${s.label}</span>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg"><div class="score-bar-fg" style="width:${barWidth}%;background:${color}"></div></div>
+        </div>
+        <span class="c-score" style="color:${color}">${scoreDisp}</span>
+        ${isBest ? '<span style="font-size:0.7rem;color:#00d4ff">★</span>' : ''}
+      </div>`;
+  }).join('');
+
+  const bestScenario = scenarios.find(s => s.key === bestKey);
+  const insight = bestScenario ? `<div class="best-label">★ ${bestScenario.label} has highest impact priority here</div>` : '';
+
+  return `
+    <div class="compare-section">
+      <div class="compare-title">⚡ Scenario Comparison</div>
+      ${rows}
+      ${insight}
+    </div>`;
+}
+
 function showDetail(p) {
   const field = scoreField[currentScenario];
   const score = p[field];
   const hasData = p.avg_download_mbps !== null;
-  
   const dl = hasData ? p.avg_download_mbps.toFixed(1) + ' Mbps' : 'No data';
   const ul = hasData ? p.avg_upload_mbps.toFixed(1) + ' Mbps' : 'No data';
   const lat = hasData ? p.avg_latency_ms.toFixed(0) + ' ms' : 'No data';
@@ -226,13 +284,6 @@ function showDetail(p) {
   const confClass = { High:'conf-high', Medium:'conf-medium', Low:'conf-low', 'No Data':'conf-nodata' }[conf] || 'conf-nodata';
   const profile = p.ai_profile || '—';
   const scoreDisp = (score !== null && hasData) ? Math.round(score) : '—';
-
-  const priorityBadge = (prio) => {
-    if (!prio || prio === 'No Data') return `<span class="badge badge-nodata">No Data</span>`;
-    const cls = { High:'badge-high', Medium:'badge-medium', Low:'badge-low' }[prio] || 'badge-nodata';
-    return `<span class="badge ${cls}">${prio}</span>`;
-  };
-
   const whyText = generateWhy(p, currentScenario);
 
   document.getElementById('detail-panel').innerHTML = `
@@ -241,8 +292,7 @@ function showDetail(p) {
       <div class="num">${scoreDisp}</div>
       <div class="label">Impact Priority Score</div>
     </div>
-
-    ${priorityBadge(p[priorityField[currentScenario]])}
+    ${getPriorityBadge(p[priorityField[currentScenario]])}
 
     <div class="ai-profile">
       <div class="label">🤖 AI Profile</div>
@@ -254,17 +304,19 @@ function showDetail(p) {
       ${hasData ? `
       <div class="metric-bar">
         <div class="metric-label"><span>Download</span><span>${dl}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (p.avg_download_mbps/200)*100)}%;background:#00d4ff"></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_download_mbps/200)*100)}%;background:#00d4ff"></div></div>
       </div>
       <div class="metric-bar">
         <div class="metric-label"><span>Upload</span><span>${ul}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (p.avg_upload_mbps/100)*100)}%;background:#60b3ff"></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_upload_mbps/100)*100)}%;background:#60b3ff"></div></div>
       </div>
       <div class="metric-bar">
         <div class="metric-label"><span>Latency</span><span>${lat}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100, (p.avg_latency_ms/200)*100)}%;background:#ffd166"></div></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_latency_ms/200)*100)}%;background:#ffd166"></div></div>
       </div>` : '<p style="color:#666;font-size:0.82rem">No network measurements</p>'}
     </div>
+
+    <hr class="section-divider">
 
     <div>
       <h3 style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Community Data</h3>
@@ -274,59 +326,47 @@ function showDetail(p) {
       <div class="stat-row"><span>Network Tests</span><span class="stat-val">${p.network_tests ? Math.round(p.network_tests) : 0}</span></div>
     </div>
 
-    <div style="margin-top:12px">
+    <div style="margin-top:10px">
       <span style="font-size:0.72rem;color:#888">Data Confidence: </span>
       <span class="${confClass}" style="font-weight:600;font-size:0.82rem">${conf}</span>
     </div>
 
     <div class="why-box">💡 <strong>Why this area?</strong><br>${whyText}</div>
+
+    ${buildCompareSection(p)}
   `;
 }
 
 function generateWhy(p, scenario) {
   const hasData = p.avg_download_mbps !== null;
   if (!hasData) return 'No network measurement data available for this area.';
-  
-  const dl = p.avg_download_mbps;
   const gap = p.connectivity_gap;
   const pop = Math.round(p.population || 0);
   const schools = p.school_count || 0;
   const health = p.healthcare_count || 0;
-
   let parts = [];
   if (gap > 0.6) parts.push('weak measured connectivity');
   else if (gap > 0.3) parts.push('moderate connectivity gap');
   else parts.push('relatively good connectivity');
-
   if (pop > 3000) parts.push(`high population exposure (${pop.toLocaleString()} residents)`);
   else if (pop > 500) parts.push(`moderate population (${pop.toLocaleString()} residents)`);
-
   if (scenario === 'education' && schools > 0) parts.push(`${schools} education facilit${schools>1?'ies':'y'} nearby`);
   if (scenario === 'healthcare' && health > 0) parts.push(`${health} healthcare facilit${health>1?'ies':'y'} nearby`);
-
   if (parts.length === 0) return 'Low community exposure in this area.';
   return 'This area combines ' + parts.join(', ') + '.';
 }
 
-// === Scenario Switch ===
-function setScenario(s) {
+function setScenario(s, el) {
   currentScenario = s;
   document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  if (el) el.classList.add('active');
   renderMap();
 }
 
-// === Load GeoJSON ===
 fetch('signal_lah_cells.geojson')
   .then(r => r.json())
-  .then(data => {
-    geojsonData = data;
-    renderMap();
-  })
-  .catch(e => {
-    console.error('Failed to load GeoJSON:', e);
-    document.getElementById('map').innerHTML = '<p style="color:red;padding:20px">Error loading data. Make sure signal_lah_cells.geojson is in the same folder.</p>';
-  });
+  .then(data => { geojsonData = data; renderMap(); })
+  .catch(e => { document.getElementById('map').innerHTML = '<p style="color:red;padding:20px">Error loading data.</p>'; });
 </script>
 </body>
 </html>

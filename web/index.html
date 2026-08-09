@@ -9,96 +9,122 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
-  
   header { background: #1a1d2e; padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #2a2d3e; }
   header h1 { font-size: 1.3rem; color: #00d4ff; font-weight: 700; }
   header span { font-size: 0.8rem; color: #888; }
   .pilot-badge { margin-left: auto; background: #1e3a5f; color: #60b3ff; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; }
 
-  .main { display: flex; flex: 1; overflow: hidden; }
-  .sidebar { width: 260px; background: #13151f; padding: 16px; overflow-y: auto; border-right: 1px solid #2a2d3e; display: flex; flex-direction: column; gap: 14px; }
-  .panel { background: #1a1d2e; border-radius: 10px; padding: 14px; }
-  .panel h3 { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+  .sidebar { width: 285px; background: #13151f; padding: 14px; overflow-y: auto; border-right: 1px solid #2a2d3e; display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: #1a1d2e; border-radius: 10px; padding: 13px; }
+  .panel h3 { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
 
-  .scenario-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; margin-bottom: 6px; transition: all 0.2s; }
-  .scenario-btn:hover { background: #252840; }
-  .scenario-btn.active { background: #1e3a5f; border-color: #00d4ff; }
-  .scenario-btn .icon { font-size: 1.2rem; }
-  .scenario-btn .label { font-size: 0.88rem; font-weight: 500; }
-  .scenario-btn .sub { font-size: 0.72rem; color: #888; }
+  .view-btn { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; margin-bottom: 5px; transition: all 0.2s; }
+  .view-btn:hover { background: #252840; }
+  .view-btn.active { background: #1e3a5f; border-color: #00d4ff; }
+  .view-btn .icon { font-size: 1.05rem; width: 22px; text-align: center; }
+  .view-btn .label { font-size: 0.86rem; font-weight: 500; }
+  .view-btn .sub { font-size: 0.69rem; color: #888; }
 
-  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; }
-  .legend-dot { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.79rem; line-height: 1.25; }
+  .legend-dot { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
 
-  .rank-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.15s; }
+  .rank-item { display: flex; align-items: center; gap: 9px; padding: 8px 9px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.15s; }
   .rank-item:hover { background: #252840; }
-  .rank-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
-  .rank-info { flex: 1; }
-  .rank-name { font-size: 0.82rem; font-weight: 500; }
-  .rank-sub { font-size: 0.72rem; color: #888; }
-  .rank-score { font-size: 1rem; font-weight: 700; }
+  .rank-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; background:#252840; color:#00d4ff; }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-sub { font-size: 0.68rem; color: #888; }
+  .rank-score { font-size: 0.95rem; font-weight: 700; }
 
-  #map { flex: 1; }
+  #map { flex: 1; min-width: 0; }
 
-  .detail-panel { width: 300px; background: #13151f; padding: 16px; overflow-y: auto; border-left: 1px solid #2a2d3e; }
-  .detail-hint { color: #555; font-size: 0.85rem; margin-top: 40px; text-align: center; }
+  .detail-panel { width: 390px; background: #13151f; padding: 15px; overflow-y: auto; border-left: 1px solid #2a2d3e; }
+  .detail-hint { color: #666; font-size: 0.85rem; margin-top: 40px; text-align: center; line-height:1.5; }
+  .detail-title-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .detail-title-row h2 { font-size:1.25rem; }
+  .micro { font-size:0.68rem; color:#777; line-height:1.4; }
 
-  .score-big { text-align: center; margin: 16px 0; }
-  .score-big .num { font-size: 2.5rem; font-weight: 800; color: #ff6b6b; }
-  .score-big .label { font-size: 0.75rem; color: #888; text-transform: uppercase; }
+  .score-big { text-align: center; margin: 12px 0; }
+  .score-big .num { font-size: 2.35rem; font-weight: 800; }
+  .score-big .label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
 
-  .metric-bar { margin-bottom: 12px; }
-  .metric-label { display: flex; justify-content: space-between; font-size: 0.78rem; margin-bottom: 4px; }
-  .bar-track { background: #252840; border-radius: 4px; height: 8px; }
-  .bar-fill { height: 8px; border-radius: 4px; transition: width 0.5s; }
+  .metric-bar { margin-bottom: 10px; }
+  .metric-label { display: flex; justify-content: space-between; font-size: 0.76rem; margin-bottom: 4px; }
+  .bar-track { background: #252840; border-radius: 4px; height: 7px; }
+  .bar-fill { height: 7px; border-radius: 4px; transition: width 0.4s; }
 
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; margin: 2px; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; margin: 2px; }
   .badge-high { background: #3d1a1a; color: #ff6b6b; }
   .badge-medium { background: #3d3219; color: #ffd166; }
   .badge-low { background: #1a3d22; color: #06d6a0; }
-  .badge-nodata { background: #2a2d3e; color: #888; }
+  .badge-nodata { background: #2a2d3e; color: #aaa; }
+  .badge-strong { background:#15382d; color:#06d6a0; }
+  .badge-good { background:#12364b; color:#60b3ff; }
+  .badge-moderate { background:#3d3219; color:#ffd166; }
+  .badge-limited { background:#3d1a1a; color:#ff8b8b; }
 
-  .conf-high { color: #06d6a0; }
-  .conf-medium { color: #ffd166; }
-  .conf-low { color: #ff6b6b; }
-  .conf-nodata { color: #888; }
-
-  .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #252840; font-size: 0.82rem; }
+  .stat-row { display: flex; justify-content: space-between; gap:12px; padding: 6px 0; border-bottom: 1px solid #252840; font-size: 0.79rem; }
   .stat-row:last-child { border-bottom: none; }
-  .stat-val { font-weight: 600; color: #e0e0e0; }
+  .stat-val { font-weight: 600; color: #e0e0e0; text-align:right; }
 
-  .why-box { background: #1a1d2e; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 0.82rem; line-height: 1.5; color: #c0c0c0; border-left: 3px solid #00d4ff; }
+  .why-box { background: #1a1d2e; border-radius: 8px; padding: 11px; margin-top: 10px; font-size: 0.78rem; line-height: 1.5; color: #c0c0c0; border-left: 3px solid #00d4ff; }
+  .warning-box { background:#2a2213; border-left-color:#ffd166; }
 
-  .ai-profile { background: #1e2a3e; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
-  .ai-profile .label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-  .ai-profile .value { font-size: 0.88rem; color: #60b3ff; font-weight: 600; margin-top: 2px; }
-
-  /* Scenario Comparison */
-  .compare-section { margin-top: 14px; border-top: 1px solid #2a2d3e; padding-top: 14px; }
-  .compare-title { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-  .compare-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; background: #1a1d2e; transition: all 0.2s; cursor: pointer; border: 1px solid transparent; }
-  .compare-row:hover { border-color: #2a2d3e; }
-  .compare-row.best { border-color: #00d4ff; background: #1e2a3e; }
-  .compare-row .c-icon { font-size: 1.1rem; }
-  .compare-row .c-label { flex: 1; font-size: 0.85rem; }
-  .compare-row .c-score { font-size: 1.1rem; font-weight: 800; min-width: 36px; text-align: right; }
-  .compare-row .c-badge { }
-  
-  .score-bar-wrap { flex: 1; margin: 0 8px; }
-  .score-bar-bg { background: #252840; border-radius: 4px; height: 6px; }
-  .score-bar-fg { height: 6px; border-radius: 4px; transition: width 0.6s ease; }
-
-  .best-label { font-size: 0.68rem; color: #00d4ff; font-weight: 600; margin-top: 8px; text-align: center; }
+  .ai-profile { background: #1e2a3e; border-radius: 8px; padding: 10px 12px; margin: 9px 0; }
+  .ai-profile .label { font-size: 0.67rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .ai-profile .value { font-size: 0.84rem; color: #60b3ff; font-weight: 600; margin-top: 3px; }
+  .ai-profile .desc { font-size:0.7rem; color:#9aa4b2; line-height:1.4; margin-top:4px; }
 
   .section-divider { border: none; border-top: 1px solid #2a2d3e; margin: 12px 0; }
+  .section-title { font-size:0.7rem; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+
+  .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .mode-card { background:#1a1d2e; border-radius:8px; padding:8px; text-align:center; }
+  .mode-card .m-label { font-size:0.65rem; color:#888; text-transform:uppercase; }
+  .mode-card .m-score { font-size:1.05rem; font-weight:700; margin:3px 0; }
+
+  .simulator { background:#171a28; border:1px solid #2a2d3e; border-radius:10px; padding:12px; margin-top:12px; }
+  .simulator h3 { font-size:0.75rem; color:#00d4ff; margin-bottom:4px; }
+  .sim-sub { font-size:0.68rem; color:#888; line-height:1.4; margin-bottom:10px; }
+  .preset-row { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px; }
+  .preset-btn { border:1px solid #334056; background:#1e2a3e; color:#d8e6f4; border-radius:7px; padding:7px 5px; cursor:pointer; font-size:0.68rem; }
+  .preset-btn:hover { border-color:#00d4ff; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
+  .field label { display:block; font-size:0.64rem; color:#888; margin-bottom:3px; }
+  .field input { width:100%; background:#10131c; color:#eee; border:1px solid #34394b; border-radius:6px; padding:7px; font-size:0.75rem; }
+  .sim-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:9px; }
+  .check-wrap { display:flex; align-items:center; gap:6px; color:#aaa; font-size:0.68rem; }
+  .run-btn { border:none; background:#00b7dc; color:#061117; font-weight:700; border-radius:7px; padding:8px 12px; cursor:pointer; font-size:0.74rem; }
+  .run-btn:hover { background:#00d4ff; }
+
+  .sim-results { margin-top:10px; }
+  .before-after { display:grid; grid-template-columns:1fr 26px 1fr; gap:5px; align-items:center; margin-bottom:8px; }
+  .ba-card { background:#1a1d2e; border-radius:8px; padding:8px; }
+  .ba-card .head { font-size:0.63rem; color:#888; text-transform:uppercase; }
+  .ba-card .big { font-size:1rem; font-weight:700; margin-top:2px; }
+  .arrow { text-align:center; color:#00d4ff; font-weight:700; }
+  .delta-positive { color:#06d6a0; }
+  .delta-negative { color:#ff6b6b; }
+  .result-row { display:grid; grid-template-columns:78px 1fr 18px 1fr; gap:5px; align-items:center; padding:6px 0; border-bottom:1px solid #252840; font-size:0.71rem; }
+  .result-row:last-child { border-bottom:none; }
+  .result-mode { color:#aaa; }
+  .result-box { background:#1a1d2e; border-radius:6px; padding:5px 6px; }
+  .scenario-note { font-size:0.67rem; color:#8d98a8; line-height:1.45; margin-top:8px; }
+
+  .loading { color:#888; padding:20px; }
+
+  @media (max-width: 1050px) {
+    .sidebar { width:240px; }
+    .detail-panel { width:340px; }
+  }
 </style>
 </head>
 <body>
-
 <header>
   <div>
     <h1>📡 Signal Lah</h1>
-    <span>GeoAI Connectivity Impact Simulator</span>
+    <span>GeoAI Connectivity Impact Simulator · V2</span>
   </div>
   <div class="pilot-badge">📍 Kuala Selangor, Malaysia</div>
 </header>
@@ -106,267 +132,469 @@
 <div class="main">
   <div class="sidebar">
     <div class="panel">
-      <h3>Scenario</h3>
-      <div class="scenario-btn active" onclick="setScenario('general', this)">
-        <span class="icon">🌐</span>
-        <div><div class="label">General Access</div><div class="sub">Overall community connectivity</div></div>
+      <h3>Map View</h3>
+      <div class="view-btn active" data-view="general" onclick="setViewMode('general', this)">
+        <span class="icon">🌐</span><div><div class="label">General Priority</div><div class="sub">Population × connectivity gap</div></div>
       </div>
-      <div class="scenario-btn" onclick="setScenario('education', this)">
-        <span class="icon">📚</span>
-        <div><div class="label">Education</div><div class="sub">Schools + students</div></div>
+      <div class="view-btn" data-view="education" onclick="setViewMode('education', this)">
+        <span class="icon">📚</span><div><div class="label">Education Priority</div><div class="sub">Population + mapped schools</div></div>
       </div>
-      <div class="scenario-btn" onclick="setScenario('healthcare', this)">
-        <span class="icon">🏥</span>
-        <div><div class="label">Healthcare</div><div class="sub">Clinics + hospitals</div></div>
+      <div class="view-btn" data-view="healthcare" onclick="setViewMode('healthcare', this)">
+        <span class="icon">🏥</span><div><div class="label">Healthcare Priority</div><div class="sub">Population + mapped healthcare</div></div>
+      </div>
+      <div class="view-btn" data-view="evidence" onclick="setViewMode('evidence', this)">
+        <span class="icon">🔎</span><div><div class="label">Evidence Gaps</div><div class="sub">Where network observations are missing</div></div>
+      </div>
+      <div class="view-btn" data-view="geoai" onclick="setViewMode('geoai', this)">
+        <span class="icon">🤖</span><div><div class="label">GeoAI Profiles</div><div class="sub">K-Means connectivity-community patterns</div></div>
       </div>
     </div>
 
     <div class="panel">
-      <h3>Priority Legend</h3>
-      <div class="legend-item"><div class="legend-dot" style="background:#ff4757"></div> High Priority (70–100)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ffd166"></div> Medium Priority (40–69)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#06d6a0"></div> Low Priority (0–39)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#444"></div> No Network Data</div>
+      <h3 id="legend-title">Priority Legend</h3>
+      <div id="legend"></div>
     </div>
 
     <div class="panel">
-      <h3>Top 5 Priority Areas</h3>
+      <h3 id="ranking-title">Top 5 Priority Areas</h3>
       <div id="ranking"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Model Guardrails</h3>
+      <div class="micro">Priority is relative within Kuala Selangor, not a regulatory service classification. Missing Ookla observations are shown as Evidence Gaps rather than assumed to be poor or good connectivity.</div>
     </div>
   </div>
 
   <div id="map"></div>
 
   <div class="detail-panel" id="detail-panel">
-    <p class="detail-hint">👆 Click on any area to see details and scenario comparison</p>
+    <p class="detail-hint">👆 Click an analysis cell to inspect its observed connectivity, community exposure, GeoAI profile and run a what-if intervention.</p>
   </div>
 </div>
 
 <script>
 let geojsonData = null;
-let currentScenario = 'general';
+let scenarioPresets = null;
+let simulatorConfig = null;
+let currentView = 'general';
 let geojsonLayer = null;
+let selectedCellId = null;
 
 const scoreField = { general: 'score_general', education: 'score_education', healthcare: 'score_healthcare' };
 const priorityField = { general: 'priority_general', education: 'priority_education', healthcare: 'priority_healthcare' };
+const exposureField = { general: 'general_exposure', education: 'education_exposure', healthcare: 'healthcare_exposure_mode' };
 
-const map = L.map('map').setView([3.38, 101.29], 11);
+const PRIORITY_COLORS = { High:'#ff4757', Medium:'#ffd166', Low:'#06d6a0', 'Evidence Gap':'#3b3f50' };
+const PROFILE_COLORS = {
+  'Strong-Connectivity Areas':'#00d4ff',
+  'High-Exposure Essential-Service Hubs':'#a78bfa',
+  'Connectivity-Constrained Areas':'#ff6b6b',
+  'Unclassified - Evidence Gap':'#3b3f50'
+};
+
+const map = L.map('map', { preferCanvas:true }).setView([3.38, 101.29], 11);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap © CARTO', maxZoom: 18
 }).addTo(map);
 
-function getColor(score, hasData) {
-  if (!hasData || score === null || score === undefined) return '#333344';
-  if (score >= 70) return '#ff4757';
-  if (score >= 40) return '#ffd166';
-  return '#06d6a0';
+function fmtNum(v, digits=0) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return '—';
+  return Number(v).toLocaleString(undefined, { minimumFractionDigits:digits, maximumFractionDigits:digits });
+}
+function isObserved(p) { return p.network_data_present === true; }
+function activeImpactMode() { return ['general','education','healthcare'].includes(currentView) ? currentView : 'general'; }
+
+function priorityColor(prio) { return PRIORITY_COLORS[prio] || '#3b3f50'; }
+function scoreColor(score, prio) { return prio ? priorityColor(prio) : '#777'; }
+
+function evidenceColor(p) {
+  if (isObserved(p)) return '#222633';
+  const x = Number(p.evidence_gap_exposure || 0);
+  if (x >= 0.55) return '#c084fc';
+  if (x >= 0.40) return '#8b5cf6';
+  if (x >= 0.25) return '#6d28d9';
+  return '#4c1d95';
 }
 
 function styleFeature(feature) {
   const p = feature.properties;
-  const score = p[scoreField[currentScenario]];
-  const hasData = p.avg_download_mbps !== null;
-  return {
-    fillColor: getColor(score, hasData),
-    fillOpacity: hasData ? 0.65 : 0.3,
-    color: '#ffffff', weight: 0.5, opacity: 0.4
-  };
+  let fillColor = '#333344';
+  let fillOpacity = 0.65;
+  if (['general','education','healthcare'].includes(currentView)) {
+    fillColor = priorityColor(p[priorityField[currentView]]);
+    fillOpacity = isObserved(p) ? 0.68 : 0.28;
+  } else if (currentView === 'evidence') {
+    fillColor = evidenceColor(p);
+    fillOpacity = isObserved(p) ? 0.12 : 0.78;
+  } else if (currentView === 'geoai') {
+    fillColor = PROFILE_COLORS[p.ai_profile] || '#3b3f50';
+    fillOpacity = p.ai_cluster_id === null || p.ai_cluster_id === undefined ? 0.28 : 0.68;
+  }
+  return { fillColor, fillOpacity, color:'#ffffff', weight:0.5, opacity:0.4 };
 }
 
 function renderMap() {
+  if (!geojsonData) return;
   if (geojsonLayer) map.removeLayer(geojsonLayer);
   geojsonLayer = L.geoJSON(geojsonData, {
     style: styleFeature,
     onEachFeature: (feature, layer) => {
+      layer.bindTooltip(feature.properties.cell_id, {sticky:true, direction:'top', opacity:0.9});
       layer.on('click', () => showDetail(feature.properties));
-      layer.on('mouseover', function() { this.setStyle({ weight: 2, color: '#00d4ff', opacity: 1 }); });
+      layer.on('mouseover', function() { this.setStyle({ weight:2, color:'#00d4ff', opacity:1 }); });
       layer.on('mouseout', function() { geojsonLayer.resetStyle(this); });
     }
   }).addTo(map);
+  updateLegend();
   updateRanking();
 }
 
+function updateLegend() {
+  const title = document.getElementById('legend-title');
+  const legend = document.getElementById('legend');
+  if (['general','education','healthcare'].includes(currentView)) {
+    title.textContent = 'Priority Legend';
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4757"></div>High relative priority (top quartile)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd166"></div>Medium relative priority</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#06d6a0"></div>Low relative priority (bottom quartile)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b3f50"></div>Evidence Gap</div>`;
+  } else if (currentView === 'evidence') {
+    title.textContent = 'Evidence Gap Legend';
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>Higher community/service exposure</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Moderate exposure</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4c1d95"></div>Lower exposure</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#222633"></div>Has observed network data</div>`;
+  } else {
+    title.textContent = 'GeoAI Profile Legend';
+    legend.innerHTML = `
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4ff"></div>Strong-Connectivity Areas</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>High-Exposure Essential-Service Hubs</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b6b"></div>Connectivity-Constrained Areas</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b3f50"></div>Unclassified · Evidence Gap</div>`;
+  }
+}
+
+function featureById(cellId) {
+  return geojsonData.features.find(f => f.properties.cell_id === cellId);
+}
+function focusCell(cellId) {
+  const feature = featureById(cellId);
+  if (!feature) return;
+  showDetail(feature.properties);
+  const layer = geojsonLayer.getLayers().find(l => l.feature && l.feature.properties.cell_id === cellId);
+  if (layer) map.fitBounds(layer.getBounds(), { maxZoom:13, padding:[30,30] });
+}
+
 function updateRanking() {
-  const field = scoreField[currentScenario];
-  const sorted = geojsonData.features
-    .filter(f => f.properties[field] !== null && f.properties.avg_download_mbps !== null)
-    .sort((a, b) => b.properties[field] - a.properties[field])
-    .slice(0, 5);
+  const title = document.getElementById('ranking-title');
+  const ranking = document.getElementById('ranking');
 
-  const colors = ['#ff4757','#ff6b6b','#ffd166','#06d6a0','#06d6a0'];
-  const bgColors = ['#3d1a1a','#3d2020','#3d3219','#1a3d22','#1a3d22'];
-
-  document.getElementById('ranking').innerHTML = sorted.map((f, i) => {
-    const p = f.properties;
-    const score = p[field];
-    const pop = p.population ? Math.round(p.population).toLocaleString() : '—';
-    return `<div class="rank-item" onclick='showDetail(${JSON.stringify(p)})'>
-      <div class="rank-num" style="background:${bgColors[i]};color:${colors[i]}">${i+1}</div>
-      <div class="rank-info">
-        <div class="rank-name">${p.cell_id}</div>
-        <div class="rank-sub">Pop: ${pop}</div>
-      </div>
-      <div class="rank-score" style="color:${colors[i]}">${Math.round(score)}</div>
-    </div>`;
-  }).join('');
-}
-
-function getPriorityBadge(prio) {
-  if (!prio || prio === 'No Data') return `<span class="badge badge-nodata">No Data</span>`;
-  const cls = { High:'badge-high', Medium:'badge-medium', Low:'badge-low' }[prio] || 'badge-nodata';
-  return `<span class="badge ${cls}">${prio}</span>`;
-}
-
-function getScoreColor(score) {
-  if (score === null || score === undefined) return '#555';
-  if (score >= 70) return '#ff4757';
-  if (score >= 40) return '#ffd166';
-  return '#06d6a0';
-}
-
-function buildCompareSection(p) {
-  const scores = {
-    general: p.score_general,
-    education: p.score_education,
-    healthcare: p.score_healthcare
-  };
-  const hasData = p.avg_download_mbps !== null;
-  if (!hasData) return '';
-
-  const scenarios = [
-    { key: 'general', icon: '🌐', label: 'General Access' },
-    { key: 'education', icon: '📚', label: 'Education' },
-    { key: 'healthcare', icon: '🏥', label: 'Healthcare' }
-  ];
-
-  // Find best scenario
-  const validScores = scenarios.filter(s => scores[s.key] !== null);
-  const bestKey = validScores.reduce((a, b) => scores[a.key] > scores[b.key] ? a : b, validScores[0])?.key;
-
-  const rows = scenarios.map(s => {
-    const score = scores[s.key];
-    const isBest = s.key === bestKey;
-    const scoreDisp = score !== null ? Math.round(score) : '—';
-    const color = getScoreColor(score);
-    const barWidth = score !== null ? score : 0;
-    return `
-      <div class="compare-row ${isBest ? 'best' : ''}" onclick="setScenario('${s.key}', document.querySelectorAll('.scenario-btn')[${scenarios.findIndex(x=>x.key===s.key)}])">
-        <span class="c-icon">${s.icon}</span>
-        <span class="c-label">${s.label}</span>
-        <div class="score-bar-wrap">
-          <div class="score-bar-bg"><div class="score-bar-fg" style="width:${barWidth}%;background:${color}"></div></div>
-        </div>
-        <span class="c-score" style="color:${color}">${scoreDisp}</span>
-        ${isBest ? '<span style="font-size:0.7rem;color:#00d4ff">★</span>' : ''}
+  if (['general','education','healthcare'].includes(currentView)) {
+    title.textContent = 'Top 5 Priority Areas';
+    const field = scoreField[currentView];
+    const sorted = [...geojsonData.features]
+      .filter(f => f.properties[field] !== null && isObserved(f.properties))
+      .sort((a,b) => Number(b.properties[field]) - Number(a.properties[field]))
+      .slice(0,5);
+    ranking.innerHTML = sorted.map((f,i) => {
+      const p = f.properties; const prio = p[priorityField[currentView]];
+      return `<div class="rank-item" onclick="focusCell('${p.cell_id}')">
+        <div class="rank-num">${i+1}</div>
+        <div class="rank-info"><div class="rank-name">${p.cell_id}</div><div class="rank-sub">Pop ${fmtNum(p.population)} · ${p.evidence_label}</div></div>
+        <div class="rank-score" style="color:${priorityColor(prio)}">${fmtNum(p[field],1)}</div>
       </div>`;
+    }).join('');
+  } else if (currentView === 'evidence') {
+    title.textContent = 'Top 5 Evidence Gaps';
+    const sorted = [...geojsonData.features]
+      .filter(f => !isObserved(f.properties))
+      .sort((a,b) => Number(b.properties.evidence_gap_exposure || 0) - Number(a.properties.evidence_gap_exposure || 0))
+      .slice(0,5);
+    ranking.innerHTML = sorted.map((f,i) => {
+      const p = f.properties;
+      return `<div class="rank-item" onclick="focusCell('${p.cell_id}')">
+        <div class="rank-num">${i+1}</div>
+        <div class="rank-info"><div class="rank-name">${p.cell_id}</div><div class="rank-sub">Pop ${fmtNum(p.population)} · Schools ${p.school_count || 0}</div></div>
+        <div class="rank-score" style="color:#c084fc">${fmtNum((p.evidence_gap_exposure || 0)*100,0)}</div>
+      </div>`;
+    }).join('');
+  } else {
+    title.textContent = 'GeoAI Profile Summary';
+    const profiles = ['Connectivity-Constrained Areas','Strong-Connectivity Areas','High-Exposure Essential-Service Hubs','Unclassified - Evidence Gap'];
+    ranking.innerHTML = profiles.map(name => {
+      const count = geojsonData.features.filter(f => f.properties.ai_profile === name).length;
+      return `<div class="rank-item" style="cursor:default"><div class="legend-dot" style="background:${PROFILE_COLORS[name]}"></div>
+        <div class="rank-info"><div class="rank-name">${name}</div><div class="rank-sub">${count} cells</div></div></div>`;
+    }).join('');
+  }
+}
+
+function evidenceBadge(label) {
+  const cls = { Strong:'badge-strong', Good:'badge-good', Moderate:'badge-moderate', Limited:'badge-limited', 'Evidence Gap':'badge-nodata' }[label] || 'badge-nodata';
+  return `<span class="badge ${cls}">${label || 'Unknown'}</span>`;
+}
+function priorityBadge(prio) {
+  const cls = {High:'badge-high', Medium:'badge-medium', Low:'badge-low', 'Evidence Gap':'badge-nodata'}[prio] || 'badge-nodata';
+  return `<span class="badge ${cls}">${prio || 'Unavailable'}</span>`;
+}
+
+function generateWhy(p) {
+  if (!isObserved(p)) {
+    const extras = [];
+    if (Number(p.population || 0) > 0) extras.push(`estimated population ${fmtNum(p.population)}`);
+    if (Number(p.school_count || 0) > 0) extras.push(`${p.school_count} mapped school${p.school_count>1?'s':''}`);
+    if (Number(p.healthcare_count || 0) > 0) extras.push(`${p.healthcare_count} mapped healthcare facilit${p.healthcare_count>1?'ies':'y'}`);
+    return `No Ookla measurements were observed for this cell. Signal Lah therefore does not infer whether connectivity is good or poor.${extras.length ? ' The evidence gap overlaps ' + extras.join(', ') + '.' : ''}`;
+  }
+  const gap = Number(p.connectivity_gap_score || 0);
+  const parts = [];
+  if (gap >= 65) parts.push('a comparatively large measured connectivity gap');
+  else if (gap >= 35) parts.push('a moderate measured connectivity gap');
+  else parts.push('comparatively strong measured connectivity');
+  if (Number(p.population || 0) >= 3000) parts.push(`high population exposure (${fmtNum(p.population)} estimated people)`);
+  if (Number(p.school_count || 0) > 0) parts.push(`${p.school_count} mapped school${p.school_count>1?'s':''}`);
+  if (Number(p.healthcare_count || 0) > 0) parts.push(`${p.healthcare_count} mapped healthcare facilit${p.healthcare_count>1?'ies':'y'}`);
+  return 'This cell combines ' + parts.join(', ') + '. Priority and GeoAI profile are shown separately because they answer different questions.';
+}
+
+function modeCards(p) {
+  return ['general','education','healthcare'].map(mode => {
+    const score = p[scoreField[mode]];
+    const prio = p[priorityField[mode]];
+    return `<div class="mode-card"><div class="m-label">${mode}</div><div class="m-score" style="color:${priorityColor(prio)}">${score === null ? '—' : fmtNum(score,1)}</div>${priorityBadge(prio)}</div>`;
   }).join('');
-
-  const bestScenario = scenarios.find(s => s.key === bestKey);
-  const insight = bestScenario ? `<div class="best-label">★ ${bestScenario.label} has highest impact priority here</div>` : '';
-
-  return `
-    <div class="compare-section">
-      <div class="compare-title">⚡ Scenario Comparison</div>
-      ${rows}
-      ${insight}
-    </div>`;
 }
 
 function showDetail(p) {
-  const field = scoreField[currentScenario];
-  const score = p[field];
-  const hasData = p.avg_download_mbps !== null;
-  const dl = hasData ? p.avg_download_mbps.toFixed(1) + ' Mbps' : 'No data';
-  const ul = hasData ? p.avg_upload_mbps.toFixed(1) + ' Mbps' : 'No data';
-  const lat = hasData ? p.avg_latency_ms.toFixed(0) + ' ms' : 'No data';
-  const pop = p.population ? Math.round(p.population).toLocaleString() : '0';
-  const conf = p.data_confidence || 'No Data';
-  const confClass = { High:'conf-high', Medium:'conf-medium', Low:'conf-low', 'No Data':'conf-nodata' }[conf] || 'conf-nodata';
-  const profile = p.ai_profile || '—';
-  const scoreDisp = (score !== null && hasData) ? Math.round(score) : '—';
-  const whyText = generateWhy(p, currentScenario);
+  selectedCellId = p.cell_id;
+  const mode = activeImpactMode();
+  const score = p[scoreField[mode]];
+  const prio = p[priorityField[mode]];
+  const observed = isObserved(p);
+  const pop = p.population === null ? 'Unknown' : fmtNum(p.population);
+  const profileDesc = p.ai_profile_description || '';
+  const interpretation = p.ai_profile_interpretation || '';
 
   document.getElementById('detail-panel').innerHTML = `
-    <h2>${p.cell_id}</h2>
-    <div class="score-big">
-      <div class="num">${scoreDisp}</div>
-      <div class="label">Impact Priority Score</div>
+    <div class="detail-title-row">
+      <div><h2>${p.cell_id}</h2><div class="micro">Dataset ${p.dataset_version || '2.0.0'} · ${p.study_area || 'Kuala Selangor'}</div></div>
+      <div>${evidenceBadge(p.evidence_label)}</div>
     </div>
-    ${getPriorityBadge(p[priorityField[currentScenario]])}
+
+    <div class="score-big">
+      <div class="num" style="color:${priorityColor(prio)}">${score === null ? '—' : fmtNum(score,1)}</div>
+      <div class="label">${mode} impact score</div>
+      <div style="margin-top:4px">${priorityBadge(prio)}</div>
+    </div>
+
+    <div class="mode-grid">${modeCards(p)}</div>
 
     <div class="ai-profile">
-      <div class="label">🤖 AI Profile</div>
-      <div class="value">${profile}</div>
-    </div>
-
-    <div style="margin:12px 0">
-      <h3 style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Network Performance</h3>
-      ${hasData ? `
-      <div class="metric-bar">
-        <div class="metric-label"><span>Download</span><span>${dl}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_download_mbps/200)*100)}%;background:#00d4ff"></div></div>
-      </div>
-      <div class="metric-bar">
-        <div class="metric-label"><span>Upload</span><span>${ul}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_upload_mbps/100)*100)}%;background:#60b3ff"></div></div>
-      </div>
-      <div class="metric-bar">
-        <div class="metric-label"><span>Latency</span><span>${lat}</span></div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,(p.avg_latency_ms/200)*100)}%;background:#ffd166"></div></div>
-      </div>` : '<p style="color:#666;font-size:0.82rem">No network measurements</p>'}
+      <div class="label">🤖 GeoAI Profile</div>
+      <div class="value">${p.ai_profile || '—'}</div>
+      <div class="desc">${profileDesc}${interpretation ? '<br><strong>Interpretation:</strong> ' + interpretation : ''}</div>
     </div>
 
     <hr class="section-divider">
+    <div class="section-title">Observed Network Performance</div>
+    ${observed ? `
+      <div class="metric-bar"><div class="metric-label"><span>Download</span><span>${fmtNum(p.avg_download_mbps,1)} Mbps</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_download_mbps)/3)}%;background:#00d4ff"></div></div></div>
+      <div class="metric-bar"><div class="metric-label"><span>Upload</span><span>${fmtNum(p.avg_upload_mbps,1)} Mbps</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_upload_mbps)*2)}%;background:#60b3ff"></div></div></div>
+      <div class="metric-bar"><div class="metric-label"><span>Latency</span><span>${fmtNum(p.avg_latency_ms,1)} ms</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_latency_ms))}%;background:#ffd166"></div></div></div>
+      <div class="stat-row"><span>Connectivity gap score</span><span class="stat-val">${fmtNum(p.connectivity_gap_score,1)}</span></div>`
+      : `<div class="why-box warning-box">⚠️ <strong>Evidence Gap.</strong><br>No observed Ookla measurements are available for this cell. The map does not label its connectivity as good or bad.</div>`}
 
-    <div>
-      <h3 style="font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Community Data</h3>
-      <div class="stat-row"><span>Population</span><span class="stat-val">${pop}</span></div>
-      <div class="stat-row"><span>Schools</span><span class="stat-val">${p.school_count || 0}</span></div>
-      <div class="stat-row"><span>Healthcare</span><span class="stat-val">${p.healthcare_count || 0}</span></div>
-      <div class="stat-row"><span>Network Tests</span><span class="stat-val">${p.network_tests ? Math.round(p.network_tests) : 0}</span></div>
-    </div>
+    <hr class="section-divider">
+    <div class="section-title">Community & Evidence</div>
+    <div class="stat-row"><span>Estimated population</span><span class="stat-val">${pop}</span></div>
+    <div class="stat-row"><span>Mapped schools</span><span class="stat-val">${p.school_count || 0}</span></div>
+    <div class="stat-row"><span>Mapped healthcare</span><span class="stat-val">${p.healthcare_count || 0}</span></div>
+    <div class="stat-row"><span>Hospitals / Clinics</span><span class="stat-val">${p.hospital_count || 0} / ${p.clinic_count || 0}</span></div>
+    <div class="stat-row"><span>Network tests</span><span class="stat-val">${p.network_tests || 0}</span></div>
 
-    <div style="margin-top:10px">
-      <span style="font-size:0.72rem;color:#888">Data Confidence: </span>
-      <span class="${confClass}" style="font-weight:600;font-size:0.82rem">${conf}</span>
-    </div>
+    <div class="why-box">💡 <strong>Why this area?</strong><br>${generateWhy(p)}</div>
 
-    <div class="why-box">💡 <strong>Why this area?</strong><br>${whyText}</div>
-
-    ${buildCompareSection(p)}
+    ${buildSimulator(p)}
   `;
 }
 
-function generateWhy(p, scenario) {
-  const hasData = p.avg_download_mbps !== null;
-  if (!hasData) return 'No network measurement data available for this area.';
-  const gap = p.connectivity_gap;
-  const pop = Math.round(p.population || 0);
-  const schools = p.school_count || 0;
-  const health = p.healthcare_count || 0;
-  let parts = [];
-  if (gap > 0.6) parts.push('weak measured connectivity');
-  else if (gap > 0.3) parts.push('moderate connectivity gap');
-  else parts.push('relatively good connectivity');
-  if (pop > 3000) parts.push(`high population exposure (${pop.toLocaleString()} residents)`);
-  else if (pop > 500) parts.push(`moderate population (${pop.toLocaleString()} residents)`);
-  if (scenario === 'education' && schools > 0) parts.push(`${schools} education facilit${schools>1?'ies':'y'} nearby`);
-  if (scenario === 'healthcare' && health > 0) parts.push(`${health} healthcare facilit${health>1?'ies':'y'} nearby`);
-  if (parts.length === 0) return 'Low community exposure in this area.';
-  return 'This area combines ' + parts.join(', ') + '.';
+function buildSimulator(p) {
+  const observed = isObserved(p);
+  const dl = observed ? Number(p.avg_download_mbps).toFixed(1) : '100';
+  const ul = observed ? Number(p.avg_upload_mbps).toFixed(1) : '20';
+  const lat = observed ? Number(p.avg_latency_ms).toFixed(1) : '22';
+  return `
+    <div class="simulator">
+      <h3>🧪 What-If Connectivity Intervention</h3>
+      <div class="sim-sub">Change connectivity outcomes while holding population and mapped essential services constant. Presets use upgrade-only logic and are empirical study-area targets, not regulatory standards.</div>
+      <div class="preset-row">
+        <button class="preset-btn" onclick="runPreset('typical_observed')">Typical</button>
+        <button class="preset-btn" onclick="runPreset('strong_observed')">Strong</button>
+        <button class="preset-btn" onclick="runPreset('top_observed')">Top</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Download Mbps</label><input id="sim-download" type="number" min="0" step="0.1" value="${dl}"></div>
+        <div class="field"><label>Upload Mbps</label><input id="sim-upload" type="number" min="0" step="0.1" value="${ul}"></div>
+        <div class="field"><label>Latency ms</label><input id="sim-latency" type="number" min="0.1" step="0.1" value="${lat}"></div>
+      </div>
+      <div class="sim-actions">
+        <label class="check-wrap"><input id="upgrade-only" type="checkbox" checked> Upgrade-only</label>
+        <button class="run-btn" onclick="runCustomScenario()">Simulate</button>
+      </div>
+      <div id="sim-results" class="sim-results"></div>
+    </div>`;
 }
 
-function setScenario(s, el) {
-  currentScenario = s;
-  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+function percentileForValue(value, reference) {
+  const x = reference.values, y = reference.ranks;
+  const v = Number(value);
+  if (v <= x[0]) return 0;
+  if (v >= x[x.length-1]) return 1;
+  let lo = 0, hi = x.length - 1;
+  while (hi - lo > 1) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (x[mid] <= v) lo = mid; else hi = mid;
+  }
+  const span = x[hi] - x[lo];
+  if (span === 0) return y[lo];
+  const t = (v - x[lo]) / span;
+  return y[lo] + t * (y[hi] - y[lo]);
+}
+
+function priorityFromScore(score, mode) {
+  if (score === null || score === undefined || Number.isNaN(score)) return 'Unavailable';
+  const t = simulatorConfig.priority_thresholds[mode];
+  if (score < t.q25) return 'Low';
+  if (score < t.q75) return 'Medium';
+  return 'High';
+}
+
+function predictGeoAI(p, download, upload, latency) {
+  if (p.population === null || p.population === undefined) return { clusterId:null, profile:'Unclassified - Population Evidence Gap', margin:null };
+  const model = simulatorConfig.geoai;
+  const raw = [Number(download), Number(upload), Number(latency), Math.log1p(Number(p.population)), Number(p.school_count || 0), Number(p.healthcare_count || 0)];
+  const scaled = raw.map((v,i) => (v - model.scaler_mean[i]) / model.scaler_scale[i]);
+  const distances = model.cluster_centers_scaled.map(center => Math.sqrt(center.reduce((sum,c,i) => sum + Math.pow(scaled[i]-c,2),0)));
+  const ordered = distances.map((d,i)=>({d,i})).sort((a,b)=>a.d-b.d);
+  const nearest = ordered[0], second = ordered[1];
+  const margin = second.d > 0 ? (second.d - nearest.d) / second.d : 0;
+  return { clusterId:nearest.i, profile:model.profile_names[String(nearest.i)], margin };
+}
+
+function simulateBrowser(p, download, upload, latency, upgradeOnly) {
+  if (download < 0 || upload < 0 || latency <= 0) throw new Error('Scenario values must be non-negative and latency must be above zero.');
+  const observed = isObserved(p);
+  let ad = Number(download), au = Number(upload), al = Number(latency);
+  if (upgradeOnly && observed) {
+    ad = Math.max(ad, Number(p.avg_download_mbps));
+    au = Math.max(au, Number(p.avg_upload_mbps));
+    al = Math.min(al, Number(p.avg_latency_ms));
+  }
+  const refs = simulatorConfig.percentile_references;
+  const downloadGap = 1 - percentileForValue(ad, refs.download);
+  const uploadGap = 1 - percentileForValue(au, refs.upload);
+  const latencyGap = percentileForValue(al, refs.latency);
+  const gap = (downloadGap + uploadGap + latencyGap) / 3;
+
+  const modes = {};
+  ['general','education','healthcare'].forEach(mode => {
+    const exposure = p[exposureField[mode]];
+    const score = exposure === null || exposure === undefined ? null : gap * Number(exposure) * 100;
+    modes[mode] = { score, priority: priorityFromScore(score, mode) };
+  });
+  const ai = predictGeoAI(p, ad, au, al);
+  return { applied:{download:ad, upload:au, latency:al}, gapScore:gap*100, modes, ai, observed };
+}
+
+function runPreset(key) {
+  if (!selectedCellId || !scenarioPresets) return;
+  const preset = scenarioPresets.presets[key];
+  document.getElementById('sim-download').value = Number(preset.download_mbps).toFixed(1);
+  document.getElementById('sim-upload').value = Number(preset.upload_mbps).toFixed(1);
+  document.getElementById('sim-latency').value = Number(preset.latency_ms).toFixed(1);
+  document.getElementById('upgrade-only').checked = true;
+  runScenario(preset.label);
+}
+function runCustomScenario() { runScenario('Custom scenario'); }
+
+function runScenario(label) {
+  const f = featureById(selectedCellId);
+  if (!f) return;
+  const p = f.properties;
+  const dl = Number(document.getElementById('sim-download').value);
+  const ul = Number(document.getElementById('sim-upload').value);
+  const lat = Number(document.getElementById('sim-latency').value);
+  const upgradeOnly = document.getElementById('upgrade-only').checked;
+  try {
+    const result = simulateBrowser(p, dl, ul, lat, upgradeOnly);
+    renderSimulationResult(p, result, label);
+  } catch (err) {
+    document.getElementById('sim-results').innerHTML = `<div class="why-box warning-box">${err.message}</div>`;
+  }
+}
+
+function renderSimulationResult(p, r, label) {
+  const baselineGap = isObserved(p) ? Number(p.connectivity_gap_score) : null;
+  const gapDelta = baselineGap === null ? null : baselineGap - r.gapScore;
+  const beforeProfile = isObserved(p) ? p.ai_profile : 'Unclassified - Evidence Gap';
+  const rows = ['general','education','healthcare'].map(mode => {
+    const beforeScore = isObserved(p) ? p[scoreField[mode]] : null;
+    const beforePrio = isObserved(p) ? p[priorityField[mode]] : 'Unknown';
+    const after = r.modes[mode];
+    return `<div class="result-row">
+      <div class="result-mode">${mode}</div>
+      <div class="result-box">${beforeScore===null?'Unknown':fmtNum(beforeScore,1)+' · '+beforePrio}</div>
+      <div class="arrow">→</div>
+      <div class="result-box" style="color:${priorityColor(after.priority)}">${after.score===null?'Unavailable':fmtNum(after.score,1)+' · '+after.priority}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sim-results').innerHTML = `
+    <hr class="section-divider">
+    <div class="section-title">${label}</div>
+    <div class="before-after">
+      <div class="ba-card"><div class="head">Before gap</div><div class="big">${baselineGap===null?'Unknown':fmtNum(baselineGap,1)}</div></div>
+      <div class="arrow">→</div>
+      <div class="ba-card"><div class="head">Scenario gap</div><div class="big">${fmtNum(r.gapScore,1)}</div></div>
+    </div>
+    ${gapDelta===null ? `<div class="micro">No before→after improvement is claimed because baseline connectivity is an Evidence Gap.</div>` : `<div class="micro ${gapDelta>=0?'delta-positive':'delta-negative'}">Connectivity-gap ${gapDelta>=0?'reduction':'increase'}: ${fmtNum(Math.abs(gapDelta),1)} points</div>`}
+    <div style="margin-top:8px">${rows}</div>
+    <div class="stat-row"><span>GeoAI profile</span><span class="stat-val">${beforeProfile} → ${r.ai.profile}</span></div>
+    <div class="stat-row"><span>GeoAI assignment margin</span><span class="stat-val">${r.ai.margin===null?'—':fmtNum(r.ai.margin,3)}</span></div>
+    <div class="stat-row"><span>Applied connectivity</span><span class="stat-val">${fmtNum(r.applied.download,1)}↓ / ${fmtNum(r.applied.upload,1)}↑ / ${fmtNum(r.applied.latency,1)} ms</span></div>
+    <div class="scenario-note">Scenario values describe a hypothetical connectivity outcome. The cell contains an estimated ${p.population===null?'unknown':fmtNum(p.population)} people, ${p.school_count||0} mapped schools and ${p.healthcare_count||0} mapped healthcare facilities; these are context, not guaranteed beneficiary counts. GeoAI assignment margin is geometric separation, not probability.</div>`;
+}
+
+function setViewMode(view, el) {
+  currentView = view;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   renderMap();
+  if (selectedCellId) {
+    const f = featureById(selectedCellId);
+    if (f) showDetail(f.properties);
+  }
 }
 
-fetch('signal_lah_cells.geojson')
-  .then(r => r.json())
-  .then(data => { geojsonData = data; renderMap(); })
-  .catch(e => { document.getElementById('map').innerHTML = '<p style="color:red;padding:20px">Error loading data.</p>'; });
+Promise.all([
+  fetch('signal_lah_cells_v2.geojson').then(r => { if(!r.ok) throw new Error('V2 GeoJSON failed to load'); return r.json(); }),
+  fetch('scenario_presets.json').then(r => { if(!r.ok) throw new Error('Scenario presets failed to load'); return r.json(); }),
+  fetch('simulator_config.json').then(r => { if(!r.ok) throw new Error('Simulator config failed to load'); return r.json(); })
+])
+.then(([data, presets, config]) => {
+  geojsonData = data;
+  scenarioPresets = presets;
+  simulatorConfig = config;
+  renderMap();
+  if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});
+})
+.catch(err => {
+  document.getElementById('map').innerHTML = `<div class="loading" style="color:#ff6b6b">Error loading Signal Lah V2 assets: ${err.message}<br><br>Open this page through a local HTTP server, not directly with file://.</div>`;
+  console.error(err);
+});
 </script>
 </body>
 </html>

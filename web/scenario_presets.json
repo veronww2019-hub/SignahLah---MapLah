@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "study_area": "Kuala Selangor",
+  "method": "Empirical scenario targets derived from observed cell-level Ookla performance. These are hypothetical what-if targets, not regulatory service standards.",
+  "upgrade_only": true,
+  "observed_cells": 182,
+  "quantiles": {
+    "download": {
+      "p50": 97.980475,
+      "p75": 184.41475368397187,
+      "p90": 275.0607823275862
+    },
+    "upload": {
+      "p50": 18.62854769230769,
+      "p75": 29.28453356313498,
+      "p90": 37.65658295454546
+    },
+    "latency": {
+      "p50": 22.22506082725061,
+      "p25": 19.0,
+      "p10": 16.679487179487182
+    }
+  },
+  "presets": {
+    "typical_observed": {
+      "label": "Typical Observed Target",
+      "description": "Hypothetical connectivity outcome based on approximately median observed performance across measured Kuala Selangor cells.",
+      "download_mbps": 97.980475,
+      "upload_mbps": 18.62854769230769,
+      "latency_ms": 22.22506082725061,
+      "basis": {
+        "download": "P50 observed download",
+        "upload": "P50 observed upload",
+        "latency": "P50 observed latency"
+      }
+    },
+    "strong_observed": {
+      "label": "Strong Observed Target",
+      "description": "Hypothetical stronger connectivity outcome using upper-quartile observed speeds and lower-quartile observed latency.",
+      "download_mbps": 184.41475368397187,
+      "upload_mbps": 29.28453356313498,
+      "latency_ms": 19.0,
+      "basis": {
+        "download": "P75 observed download",
+        "upload": "P75 observed upload",
+        "latency": "P25 observed latency"
+      }
+    },
+    "top_observed": {
+      "label": "Top Observed Target",
+      "description": "Hypothetical high-performance connectivity outcome using P90 observed speeds and P10 observed latency.",
+      "download_mbps": 275.0607823275862,
+      "upload_mbps": 37.65658295454546,
+      "latency_ms": 16.679487179487182,
+      "basis": {
+        "download": "P90 observed download",
+        "upload": "P90 observed upload",
+        "latency": "P10 observed latency"
+      }
+    }
+  }
+}

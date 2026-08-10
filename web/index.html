@@ -132,6 +132,31 @@
   .district-shift .big { font-size:1.1rem; font-weight:800; color:#06d6a0; }
   .district-context { font-size:0.72rem; color:#aaa; line-height:1.5; margin-top:7px; }
 
+
+  /* Phase 6D map exploration */
+  .search-row { display:flex; gap:6px; }
+  .search-row input { flex:1; min-width:0; background:#10131c; color:#eee; border:1px solid #34394b; border-radius:7px; padding:8px 9px; font-size:0.76rem; }
+  .search-row input:focus { outline:none; border-color:#00d4ff; box-shadow:0 0 0 1px rgba(0,212,255,.18); }
+  .search-btn, .reset-btn { border:1px solid #344055; border-radius:7px; background:#1e2a3e; color:#e5edf7; padding:7px 9px; cursor:pointer; font-size:0.71rem; font-weight:600; }
+  .search-btn:hover, .reset-btn:hover { border-color:#00d4ff; }
+  .search-status { min-height:16px; margin-top:6px; font-size:0.67rem; color:#8d98a8; line-height:1.35; }
+  .map-tool-row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid #252840; }
+  .overlay-list { display:flex; flex-direction:column; gap:7px; margin-top:9px; }
+  .overlay-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#151824; border:1px solid #292e40; border-radius:7px; padding:7px 8px; font-size:0.72rem; cursor:pointer; }
+  .overlay-toggle .left { display:flex; align-items:center; gap:7px; }
+  .overlay-toggle input { accent-color:#00d4ff; }
+  .overlay-count { color:#788599; font-size:0.65rem; }
+  .facility-key { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .locality-heading { color:#eaf7ff; }
+  .locality-context { font-size:0.69rem; color:#7f8b9b; margin-top:3px; line-height:1.4; }
+  .far-locality { color:#a2a9b4; }
+  .leaflet-tooltip.signal-tooltip { background:#151824; border:1px solid #384156; color:#edf4fb; box-shadow:0 4px 14px rgba(0,0,0,.35); border-radius:7px; padding:7px 9px; font-family:'Segoe UI',sans-serif; }
+  .leaflet-tooltip.signal-tooltip:before { border-top-color:#384156; }
+  .tt-title { font-size:.76rem; font-weight:700; color:#fff; }
+  .tt-sub { font-size:.64rem; color:#9aa5b5; margin-top:1px; }
+  .tt-metric { font-size:.69rem; margin-top:4px; }
+  .facility-popup-title { font-weight:700; margin-bottom:3px; }
+
 </style>
 </head>
 <body>
@@ -162,6 +187,21 @@
       <div class="view-btn" data-view="geoai" onclick="setViewMode('geoai', this)">
         <span class="icon">🤖</span><div><div class="label">GeoAI Profiles</div><div class="sub">K-Means connectivity-community patterns</div></div>
       </div>
+    </div>
+
+    <div class="panel">
+      <h3>Explore Map</h3>
+      <div class="search-row">
+        <input id="map-search" list="search-options" type="text" placeholder="Search locality or grid ID" onkeydown="if(event.key==='Enter') runMapSearch()">
+        <button class="search-btn" onclick="runMapSearch()">Go</button>
+      </div>
+      <datalist id="search-options"></datalist>
+      <div id="search-status" class="search-status">Search examples: Ijok, Bestari Jaya, KS_248.</div>
+      <div class="overlay-list">
+        <label class="overlay-toggle"><span class="left"><input id="toggle-schools" type="checkbox" onchange="toggleFacilityLayer('schools', this.checked)"><span class="facility-key" style="background:#60b3ff"></span>Mapped schools</span><span id="school-overlay-count" class="overlay-count">105</span></label>
+        <label class="overlay-toggle"><span class="left"><input id="toggle-healthcare" type="checkbox" onchange="toggleFacilityLayer('healthcare', this.checked)"><span class="facility-key" style="background:#06d6a0"></span>Mapped healthcare</span><span id="health-overlay-count" class="overlay-count">64</span></label>
+      </div>
+      <div class="map-tool-row"><span class="micro">Facility layers show OSM-mapped features used by the analysis.</span><button class="reset-btn" onclick="resetMapView()">Reset map</button></div>
     </div>
 
     <div class="panel">
@@ -205,6 +245,11 @@ let geojsonLayer = null;
 let selectedCellId = null;
 let evidenceExposureThresholds = null;
 let currentDistrictPresetKey = 'typical_observed';
+let schoolsData = null;
+let healthcareData = null;
+let localitiesData = null;
+let schoolsLayer = null;
+let healthcareLayer = null;
 
 const scoreField = { general: 'score_general', education: 'score_education', healthcare: 'score_healthcare' };
 const priorityField = { general: 'priority_general', education: 'priority_education', healthcare: 'priority_healthcare' };
@@ -228,6 +273,50 @@ function fmtNum(v, digits=0) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return '—';
   return Number(v).toLocaleString(undefined, { minimumFractionDigits:digits, maximumFractionDigits:digits });
 }
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+}
+function normText(value) { return String(value ?? '').trim().toLocaleLowerCase(); }
+function localityContext(p) {
+  const nearName = p.nearest_locality;
+  const nearType = p.nearest_locality_type;
+  const nearDist = Number(p.nearest_locality_distance_km);
+  const majorName = p.nearest_major_locality;
+  const majorType = p.nearest_major_locality_type;
+  const majorDist = Number(p.nearest_major_locality_distance_km);
+  if (nearName && Number.isFinite(nearDist) && nearDist <= 7) return {name:nearName, type:nearType, distance:nearDist, far:false, source:'nearest'};
+  if (majorName && Number.isFinite(majorDist) && majorDist <= 10) return {name:majorName, type:majorType, distance:majorDist, far:false, source:'major'};
+  if (nearName) return {name:nearName, type:nearType, distance:Number.isFinite(nearDist)?nearDist:null, far:true, source:'nearest'};
+  if (majorName) return {name:majorName, type:majorType, distance:Number.isFinite(majorDist)?majorDist:null, far:true, source:'major'};
+  return null;
+}
+function localityDisplayName(p) {
+  const c = localityContext(p);
+  return c && !c.far ? c.name : p.cell_id;
+}
+function localityMeta(p) {
+  const c = localityContext(p);
+  if (!c) return `Grid ${escapeHTML(p.cell_id)} · Kuala Selangor`;
+  const dist = c.distance === null ? '' : ` · ${fmtNum(c.distance,1)} km`;
+  return `${escapeHTML(p.cell_id)} · ${c.far ? 'nearest mapped ' : 'near '}${escapeHTML(c.type || 'locality')} ${escapeHTML(c.name)}${dist}`;
+}
+function tooltipHTML(p) {
+  const c = localityContext(p);
+  const title = c && !c.far ? escapeHTML(c.name) : escapeHTML(p.cell_id);
+  const sub = c ? `${escapeHTML(p.cell_id)} · ${escapeHTML(c.type || 'locality')}${c.distance===null?'':` · ${fmtNum(c.distance,1)} km`}` : 'Kuala Selangor analysis grid';
+  let metric = '';
+  if (['general','education','healthcare'].includes(currentView)) {
+    const mode = currentView;
+    const score = p[scoreField[mode]];
+    metric = score === null ? `Evidence Gap · ${escapeHTML(p.evidence_label || 'No observed network data')}` : `${mode[0].toUpperCase()+mode.slice(1)}: ${fmtNum(score,1)} · ${escapeHTML(p[priorityField[mode]])}`;
+  } else if (currentView === 'evidence') {
+    metric = isObserved(p) ? `${escapeHTML(p.evidence_label)} evidence · ${fmtNum(p.network_tests || 0)} tests` : `Evidence Gap · exposure ${fmtNum(Number(p.evidence_gap_exposure || 0)*100,0)}/100`;
+  } else {
+    metric = escapeHTML(p.ai_profile || 'Unclassified');
+  }
+  return `<div class="tt-title">${title}</div><div class="tt-sub">${sub}</div><div class="tt-metric">${metric}</div>`;
+}
+
 function isObserved(p) { return p.network_data_present === true; }
 function activeImpactMode() { return ['general','education','healthcare'].includes(currentView) ? currentView : 'general'; }
 
@@ -290,7 +379,7 @@ function renderMap() {
   geojsonLayer = L.geoJSON(geojsonData, {
     style: styleFeature,
     onEachFeature: (feature, layer) => {
-      layer.bindTooltip(feature.properties.cell_id, {sticky:true, direction:'top', opacity:0.9});
+      layer.bindTooltip(() => tooltipHTML(feature.properties), {sticky:true, direction:'top', opacity:0.96, className:'signal-tooltip'});
       layer.on('click', () => showDetail(feature.properties));
       layer.on('mouseover', function() { this.setStyle({ weight:2, color:'#00d4ff', opacity:1 }); });
       layer.on('mouseout', function() { geojsonLayer.resetStyle(this); });
@@ -298,6 +387,119 @@ function renderMap() {
   }).addTo(map);
   updateLegend();
   updateRanking();
+}
+
+
+function featureCenterLatLng(feature) {
+  if (!feature || !feature.geometry) return null;
+  if (feature.geometry.type === 'Point') {
+    const c = feature.geometry.coordinates;
+    return L.latLng(c[1], c[0]);
+  }
+  const tmp = L.geoJSON(feature);
+  const b = tmp.getBounds();
+  return b.isValid() ? b.getCenter() : null;
+}
+function makeFacilityLayer(data, kind) {
+  const group = L.layerGroup();
+  if (!data || !Array.isArray(data.features)) return group;
+  const isSchool = kind === 'schools';
+  data.features.forEach(feature => {
+    const latlng = featureCenterLatLng(feature);
+    if (!latlng) return;
+    const p = feature.properties || {};
+    const title = isSchool ? (p.school_name || 'Mapped school') : (p.facility_name || 'Mapped healthcare facility');
+    const detail = isSchool ? 'School · OpenStreetMap-mapped facility' : `${p.facility_type || 'Healthcare'} · OpenStreetMap-mapped facility`;
+    const marker = L.circleMarker(latlng, {
+      radius:5,
+      color:isSchool ? '#60b3ff' : '#06d6a0',
+      weight:1.5,
+      fillColor:isSchool ? '#60b3ff' : '#06d6a0',
+      fillOpacity:0.82
+    });
+    marker.bindPopup(`<div class="facility-popup-title">${escapeHTML(title)}</div><div style="font-size:.75rem;color:#586273">${escapeHTML(detail)}</div>`);
+    group.addLayer(marker);
+  });
+  return group;
+}
+function buildFacilityLayers() {
+  schoolsLayer = makeFacilityLayer(schoolsData, 'schools');
+  healthcareLayer = makeFacilityLayer(healthcareData, 'healthcare');
+  const sc = document.getElementById('school-overlay-count');
+  const hc = document.getElementById('health-overlay-count');
+  if (sc) sc.textContent = schoolsData?.features?.length ?? '—';
+  if (hc) hc.textContent = healthcareData?.features?.length ?? '—';
+}
+function toggleFacilityLayer(kind, checked) {
+  const layer = kind === 'schools' ? schoolsLayer : healthcareLayer;
+  if (!layer) return;
+  if (checked) layer.addTo(map); else map.removeLayer(layer);
+}
+function populateSearchOptions() {
+  const host = document.getElementById('search-options');
+  if (!host || !geojsonData) return;
+  const values = new Set();
+  geojsonData.features.forEach(f => {
+    const p = f.properties;
+    values.add(p.cell_id);
+    if (p.nearest_locality) values.add(p.nearest_locality);
+    if (p.nearest_major_locality) values.add(p.nearest_major_locality);
+  });
+  if (localitiesData?.features) localitiesData.features.forEach(f => { if (f.properties?.name) values.add(f.properties.name); });
+  host.innerHTML = [...values].sort((a,b)=>String(a).localeCompare(String(b))).map(v => `<option value="${escapeHTML(v)}"></option>`).join('');
+}
+function candidateSearchScore(p, q) {
+  const cid = normText(p.cell_id);
+  if (cid === q) return {score:0, distance:0};
+  if (cid.startsWith(q)) return {score:1, distance:0};
+  const fields = [
+    [p.nearest_locality, Number(p.nearest_locality_distance_km)],
+    [p.nearest_major_locality, Number(p.nearest_major_locality_distance_km)]
+  ];
+  let best = null;
+  fields.forEach(([name, dist]) => {
+    const n = normText(name);
+    if (!n) return;
+    let score = null;
+    if (n === q) score = 2;
+    else if (n.startsWith(q)) score = 3;
+    else if (n.includes(q)) score = 4;
+    if (score !== null && (!best || score < best.score || (score === best.score && dist < best.distance))) best = {score, distance:Number.isFinite(dist)?dist:999};
+  });
+  if (!best && cid.includes(q)) best = {score:5,distance:0};
+  return best;
+}
+function runMapSearch() {
+  const input = document.getElementById('map-search');
+  const status = document.getElementById('search-status');
+  const q = normText(input?.value);
+  if (!q) { if(status) status.textContent='Enter a locality or grid ID.'; return; }
+  const matches = [];
+  geojsonData.features.forEach(f => {
+    const hit = candidateSearchScore(f.properties, q);
+    if (hit) matches.push({feature:f, ...hit});
+  });
+  matches.sort((a,b)=>a.score-b.score || a.distance-b.distance || a.feature.properties.cell_id.localeCompare(b.feature.properties.cell_id));
+  if (matches.length) {
+    const p = matches[0].feature.properties;
+    focusCell(p.cell_id);
+    const c = localityContext(p);
+    if(status) status.textContent = c ? `Selected ${p.cell_id} · ${c.name}${c.distance===null?'':` · ${fmtNum(c.distance,1)} km`}` : `Selected ${p.cell_id}`;
+    return;
+  }
+  const locality = localitiesData?.features?.find(f => normText(f.properties?.name) === q) || localitiesData?.features?.find(f => normText(f.properties?.name).includes(q));
+  if (locality) {
+    const ll = featureCenterLatLng(locality);
+    if (ll) map.setView(ll, 13);
+    if(status) status.textContent = `Mapped locality: ${locality.properties.name} · ${locality.properties.fclass || 'locality'}`;
+    return;
+  }
+  if(status) status.textContent = `No locality or grid matched “${input.value.trim()}”.`;
+}
+function resetMapView() {
+  if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});
+  const status = document.getElementById('search-status');
+  if (status) status.textContent = 'Map reset to the Kuala Selangor pilot area.';
 }
 
 function updateLegend() {
@@ -354,7 +556,7 @@ function updateRanking() {
       const p = f.properties; const prio = p[priorityField[currentView]];
       return `<div class="rank-item" onclick="focusCell('${p.cell_id}')">
         <div class="rank-num">${i+1}</div>
-        <div class="rank-info"><div class="rank-name">${p.cell_id}</div><div class="rank-sub">Pop ${fmtNum(p.population)} · ${p.evidence_label}</div></div>
+        <div class="rank-info"><div class="rank-name">${escapeHTML(localityDisplayName(p))}</div><div class="rank-sub">${escapeHTML(p.cell_id)} · Pop ${fmtNum(p.population)} · ${escapeHTML(p.evidence_label)}</div></div>
         <div class="rank-score" style="color:${priorityColor(prio)}">${fmtNum(p[field],1)}</div>
       </div>`;
     }).join('');
@@ -368,7 +570,7 @@ function updateRanking() {
       const p = f.properties;
       return `<div class="rank-item" onclick="focusCell('${p.cell_id}')">
         <div class="rank-num">${i+1}</div>
-        <div class="rank-info"><div class="rank-name">${p.cell_id}</div><div class="rank-sub">Pop ${fmtNum(p.population)} · Schools ${p.school_count || 0}</div></div>
+        <div class="rank-info"><div class="rank-name">${escapeHTML(localityDisplayName(p))}</div><div class="rank-sub">${escapeHTML(p.cell_id)} · Pop ${fmtNum(p.population)} · Schools ${p.school_count || 0}</div></div>
         <div class="rank-score" style="color:#c084fc">${fmtNum((p.evidence_gap_exposure || 0)*100,0)}</div>
       </div>`;
     }).join('');
@@ -431,7 +633,7 @@ function showDetail(p) {
 
   document.getElementById('detail-panel').innerHTML = `
     <div class="detail-title-row">
-      <div><h2>${p.cell_id}</h2><div class="micro">Dataset ${p.dataset_version || '2.0.0'} · ${p.study_area || 'Kuala Selangor'}</div></div>
+      <div><h2 class="locality-heading">${escapeHTML(localityDisplayName(p))}</h2><div class="locality-context">${localityMeta(p)}</div><div class="micro">Dataset ${p.dataset_version || '2.0.0'} · ${p.study_area || 'Kuala Selangor'}</div></div>
       <div>${evidenceBadge(p.evidence_label)}</div>
     </div>
 
@@ -459,6 +661,13 @@ function showDetail(p) {
       <div class="stat-row"><span>Latency</span><span class="stat-val">${fmtNum(p.avg_latency_ms,1)} ms</span></div>
       <div class="stat-row"><span>Connectivity gap score</span><span class="stat-val">${fmtNum(p.connectivity_gap_score,1)}</span></div>`
       : `<div class="why-box warning-box">⚠️ <strong>Evidence Gap.</strong><br>No observed Ookla measurements are available for this cell. The map does not label its connectivity as good or bad.</div>`}
+
+    <hr class="section-divider">
+    <div class="section-title">Geographic Context</div>
+    <div class="stat-row"><span>Nearest mapped locality</span><span class="stat-val">${p.nearest_locality ? `${escapeHTML(p.nearest_locality)} · ${fmtNum(p.nearest_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
+    <div class="stat-row"><span>Locality type</span><span class="stat-val">${p.nearest_locality_type ? escapeHTML(p.nearest_locality_type) : '—'}</span></div>
+    <div class="stat-row"><span>Nearest major locality</span><span class="stat-val">${p.nearest_major_locality ? `${escapeHTML(p.nearest_major_locality)} · ${fmtNum(p.nearest_major_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
+    ${Number(p.nearest_locality_distance_km) > 10 ? `<div class="micro far-locality" style="margin-top:5px">This cell is relatively far from the nearest mapped settlement point; locality names are geographic context, not administrative assignment.</div>` : ''}
 
     <hr class="section-divider">
     <div class="section-title">Community & Evidence</div>
@@ -740,13 +949,21 @@ function setViewMode(view, el) {
 Promise.all([
   fetch('signal_lah_cells_v2.geojson').then(r => { if(!r.ok) throw new Error('V2 GeoJSON failed to load'); return r.json(); }),
   fetch('scenario_presets.json').then(r => { if(!r.ok) throw new Error('Scenario presets failed to load'); return r.json(); }),
-  fetch('simulator_config.json').then(r => { if(!r.ok) throw new Error('Simulator config failed to load'); return r.json(); })
+  fetch('simulator_config.json').then(r => { if(!r.ok) throw new Error('Simulator config failed to load'); return r.json(); }),
+  fetch('schools.geojson').then(r => { if(!r.ok) throw new Error('School layer failed to load'); return r.json(); }),
+  fetch('healthcare.geojson').then(r => { if(!r.ok) throw new Error('Healthcare layer failed to load'); return r.json(); }),
+  fetch('localities.geojson').then(r => { if(!r.ok) throw new Error('Locality layer failed to load'); return r.json(); })
 ])
-.then(([data, presets, config]) => {
+.then(([data, presets, config, schools, healthcare, localities]) => {
   geojsonData = data;
   scenarioPresets = presets;
   simulatorConfig = config;
+  schoolsData = schools;
+  healthcareData = healthcare;
+  localitiesData = localities;
   computeEvidenceExposureThresholds();
+  buildFacilityLayers();
+  populateSearchOptions();
   renderMap();
   renderDistrictSummary();
   if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});

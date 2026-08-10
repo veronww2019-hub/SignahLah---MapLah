@@ -118,6 +118,20 @@
     .sidebar { width:240px; }
     .detail-panel { width:340px; }
   }
+
+  /* District-wide scenario summary */
+  .district-presets { display:flex; gap:6px; margin-bottom:10px; }
+  .district-preset-btn { flex:1; border:1px solid #34384d; background:#202333; color:#d8d8e0; border-radius:7px; padding:7px 5px; font-size:0.72rem; font-weight:600; cursor:pointer; }
+  .district-preset-btn:hover { border-color:#00d4ff; }
+  .district-preset-btn.active { background:#1e3a5f; border-color:#00d4ff; color:#fff; }
+  .district-kpi { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:8px 0; }
+  .district-kpi-card { background:#13151f; border:1px solid #2a2d3e; border-radius:8px; padding:8px; }
+  .district-kpi-card .k { font-size:0.66rem; color:#888; text-transform:uppercase; letter-spacing:.4px; }
+  .district-kpi-card .v { font-size:1rem; font-weight:800; margin-top:2px; }
+  .district-shift { background:#13261f; border:1px solid #1f513f; border-radius:8px; padding:9px; margin:8px 0; }
+  .district-shift .big { font-size:1.1rem; font-weight:800; color:#06d6a0; }
+  .district-context { font-size:0.72rem; color:#aaa; line-height:1.5; margin-top:7px; }
+
 </style>
 </head>
 <body>
@@ -159,6 +173,15 @@
       <h3 id="ranking-title">Top 5 Priority Areas</h3>
       <div id="ranking"></div>
     </div>
+    <div class="panel">
+      <h3>District What-If</h3>
+      <div class="district-presets">
+        <button class="district-preset-btn active" data-district-preset="typical_observed" onclick="setDistrictPreset('typical_observed', this)">Typical</button>
+        <button class="district-preset-btn" data-district-preset="strong_observed" onclick="setDistrictPreset('strong_observed', this)">Strong</button>
+        <button class="district-preset-btn" data-district-preset="top_observed" onclick="setDistrictPreset('top_observed', this)">Top</button>
+      </div>
+      <div id="district-summary" class="micro">Loading district scenario summary…</div>
+    </div>
 
     <div class="panel">
       <h3>Model Guardrails</h3>
@@ -181,6 +204,7 @@ let currentView = 'general';
 let geojsonLayer = null;
 let selectedCellId = null;
 let evidenceExposureThresholds = null;
+let currentDistrictPresetKey = 'typical_observed';
 
 const scoreField = { general: 'score_general', education: 'score_education', healthcare: 'score_healthcare' };
 const priorityField = { general: 'priority_general', education: 'priority_education', healthcare: 'priority_healthcare' };
@@ -612,11 +636,101 @@ function renderSimulationResult(p, r, label) {
     <div class="scenario-note">Scenario values describe a hypothetical connectivity outcome. The cell contains an estimated ${p.population===null?'unknown':fmtNum(p.population)} people, ${p.school_count||0} mapped schools and ${p.healthcare_count||0} mapped healthcare facilities; these are context, not guaranteed beneficiary counts. GeoAI assignment margin is geometric separation, not probability.</div>`;
 }
 
+
+function setDistrictPreset(key, el) {
+  currentDistrictPresetKey = key;
+  document.querySelectorAll('.district-preset-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderDistrictSummary();
+}
+
+function renderDistrictSummary() {
+  const host = document.getElementById('district-summary');
+  if (!host || !geojsonData || !scenarioPresets || !simulatorConfig) return;
+
+  if (!['general','education','healthcare'].includes(currentView)) {
+    host.innerHTML = 'Switch to General, Education or Healthcare priority to evaluate a district-wide intervention scenario.';
+    return;
+  }
+
+  const mode = currentView;
+  const preset = scenarioPresets.presets[currentDistrictPresetKey];
+  if (!preset) {
+    host.innerHTML = 'Scenario preset unavailable.';
+    return;
+  }
+
+  const observed = geojsonData.features.filter(f => isObserved(f.properties));
+  let highBefore = 0;
+  let highAfter = 0;
+  let movedOutHigh = 0;
+  let highToLow = 0;
+  let totalReduction = 0;
+  let reductionCount = 0;
+  let transitionPopulation = 0;
+  let transitionSchools = 0;
+  let transitionHealthcare = 0;
+
+  observed.forEach(f => {
+    const p = f.properties;
+    const beforeScore = Number(p[scoreField[mode]]);
+    const beforePrio = p[priorityField[mode]];
+    const r = simulateBrowser(
+      p,
+      Number(preset.download_mbps),
+      Number(preset.upload_mbps),
+      Number(preset.latency_ms),
+      true
+    );
+    const afterScore = r.modes[mode].score;
+    const afterPrio = r.modes[mode].priority;
+
+    if (beforePrio === 'High') highBefore += 1;
+    if (afterPrio === 'High') highAfter += 1;
+
+    if (Number.isFinite(beforeScore) && Number.isFinite(afterScore)) {
+      totalReduction += beforeScore - afterScore;
+      reductionCount += 1;
+    }
+
+    if (beforePrio === 'High' && afterPrio !== 'High') {
+      movedOutHigh += 1;
+      transitionPopulation += Number(p.population || 0);
+      transitionSchools += Number(p.school_count || 0);
+      transitionHealthcare += Number(p.healthcare_count || 0);
+      if (afterPrio === 'Low') highToLow += 1;
+    }
+  });
+
+  const meanReduction = reductionCount ? totalReduction / reductionCount : 0;
+  const lensLabel = mode === 'general' ? 'General' : mode === 'education' ? 'Education' : 'Healthcare';
+  const pct = highBefore ? (movedOutHigh / highBefore) * 100 : 0;
+
+  host.innerHTML = `
+    <div style="font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:3px">${preset.label} · ${lensLabel}</div>
+    <div class="micro">Empirical observed target; upgrade-only is applied to measured cells.</div>
+    <div class="district-kpi">
+      <div class="district-kpi-card"><div class="k">High before</div><div class="v">${highBefore}</div></div>
+      <div class="district-kpi-card"><div class="k">High after</div><div class="v">${highAfter}</div></div>
+      <div class="district-kpi-card"><div class="k">Mean score reduction</div><div class="v">${fmtNum(meanReduction,1)}</div></div>
+      <div class="district-kpi-card"><div class="k">High → Low</div><div class="v">${highToLow}</div></div>
+    </div>
+    <div class="district-shift">
+      <div class="micro">High-priority cells moving out of High</div>
+      <div class="big">${movedOutHigh} / ${highBefore} (${fmtNum(pct,1)}%)</div>
+    </div>
+    <div class="district-context">
+      Those transitioning cells contain ≈${fmtNum(transitionPopulation)} estimated people, ${fmtNum(transitionSchools)} mapped schools and ${fmtNum(transitionHealthcare)} mapped healthcare facilities.
+    </div>
+    <div class="scenario-note" style="margin-top:8px">These are cells whose modelled priority changes under a hypothetical connectivity outcome. Population and facility counts are context, not guaranteed beneficiaries. This is not an RF/tower-propagation prediction.</div>`;
+}
+
 function setViewMode(view, el) {
   currentView = view;
   document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   renderMap();
+  renderDistrictSummary();
   if (selectedCellId) {
     const f = featureById(selectedCellId);
     if (f) showDetail(f.properties);
@@ -634,6 +748,7 @@ Promise.all([
   simulatorConfig = config;
   computeEvidenceExposureThresholds();
   renderMap();
+  renderDistrictSummary();
   if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});
 })
 .catch(err => {

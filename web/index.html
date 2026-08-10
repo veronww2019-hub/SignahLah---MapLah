@@ -7,236 +7,993 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; height: 100vh; display: flex; flex-direction: column; }
-  header { background: #1a1d2e; padding: 12px 20px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #2a2d3e; }
-  header h1 { font-size: 1.3rem; color: #00d4ff; font-weight: 700; }
-  header span { font-size: 0.8rem; color: #888; }
-  .pilot-badge { margin-left: auto; background: #1e3a5f; color: #60b3ff; padding: 4px 12px; border-radius: 20px; font-size: 0.78rem; }
+  :root {
+    --bg:#f5f7fb; --surface:#ffffff; --surface-2:#f8fafc; --text:#172033; --muted:#6b7280;
+    --border:#e2e8f0; --accent:#0b84f3; --accent-soft:#eaf4ff; --shadow:0 10px 28px rgba(15,23,42,.08);
+    --high:#e84b55; --medium:#e0a51d; --low:#14a47e; --purple:#7c3aed;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  button,input{font:inherit}
+  button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid rgba(11,132,243,.22);outline-offset:2px}
 
-  .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
-  .sidebar { width: 285px; background: #13151f; padding: 14px; overflow-y: auto; border-right: 1px solid #2a2d3e; display: flex; flex-direction: column; gap: 12px; }
-  .panel { background: #1a1d2e; border-radius: 10px; padding: 13px; }
-  .panel h3 { font-size: 0.72rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  header{background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);min-height:68px;padding:10px 18px;display:grid;grid-template-columns:auto minmax(280px,620px) auto;gap:18px;align-items:center;z-index:1001;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+  .brand{display:flex;align-items:center;gap:10px;min-width:max-content}
+  .brand-mark{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#0b84f3,#10b981);display:grid;place-items:center;color:#fff;font-size:1.2rem;box-shadow:0 6px 16px rgba(11,132,243,.22)}
+  .brand h1{font-size:1.08rem;line-height:1.1;color:#10213a;font-weight:800}
+  .brand span{font-size:.68rem;color:var(--muted)}
+  .header-search{position:relative;width:100%}
+  .header-search-row{display:flex;align-items:center;background:#f8fafc;border:1px solid #dbe3ee;border-radius:12px;padding:0 6px 0 12px;box-shadow:inset 0 1px 2px rgba(15,23,42,.02)}
+  .header-search-row:focus-within{border-color:#7dbdf6;box-shadow:0 0 0 3px rgba(11,132,243,.10)}
+  .header-search-icon{color:#8591a2;font-size:.9rem;margin-right:7px}
+  .header-search input{flex:1;border:none;background:transparent;padding:10px 2px;color:var(--text);font-size:.82rem;min-width:0;outline:none}
+  .search-btn{border:none;border-radius:8px;background:var(--accent);color:#fff;padding:8px 11px;cursor:pointer;font-size:.73rem;font-weight:700}
+  .search-btn:hover{background:#0876da}
+  .search-status{position:absolute;top:46px;left:4px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);border-radius:8px;padding:6px 9px;font-size:.67rem;color:var(--muted);max-width:480px;display:none;z-index:1200}
+  .search-status:not(:empty){display:block}
+  .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:max-content}
+  .pilot-badge{background:#eef6ff;color:#1469a8;padding:7px 10px;border-radius:999px;font-size:.7rem;font-weight:700;border:1px solid #d9ebfb}
+  .header-btn{border:1px solid var(--border);background:#fff;color:#334155;border-radius:9px;padding:8px 10px;font-size:.71rem;font-weight:700;cursor:pointer}
+  .header-btn:hover{background:#f8fafc;border-color:#cbd5e1}
 
-  .view-btn { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; margin-bottom: 5px; transition: all 0.2s; }
-  .view-btn:hover { background: #252840; }
-  .view-btn.active { background: #1e3a5f; border-color: #00d4ff; }
-  .view-btn .icon { font-size: 1.05rem; width: 22px; text-align: center; }
-  .view-btn .label { font-size: 0.86rem; font-weight: 500; }
-  .view-btn .sub { font-size: 0.69rem; color: #888; }
+  .main{display:flex;flex:1;min-height:0;overflow:hidden}
+  .sidebar{width:236px;background:#fbfcfe;border-right:1px solid var(--border);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+  .panel,.tool-details{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 3px 10px rgba(15,23,42,.025)}
+  .panel{padding:11px}
+  .panel h3{font-size:.66rem;color:#697386;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+  .view-btn{display:flex;align-items:center;gap:9px;padding:9px;border-radius:9px;cursor:pointer;border:1px solid transparent;margin-bottom:4px;transition:.15s;background:transparent}
+  .view-btn:last-child{margin-bottom:0}
+  .view-btn:hover{background:#f6f9fd}
+  .view-btn.active{background:var(--accent-soft);border-color:#b9dcfb;color:#0b63a7}
+  .view-btn .icon{font-size:1rem;width:20px;text-align:center}
+  .view-btn .label{font-size:.79rem;font-weight:700}
+  .view-btn .sub{font-size:.61rem;color:#8893a4;margin-top:1px;line-height:1.25}
 
-  .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 0.79rem; line-height: 1.25; }
-  .legend-dot { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+  .overlay-list{display:flex;flex-direction:column;gap:6px}
+  .overlay-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--border);border-radius:8px;padding:7px 8px;font-size:.7rem;cursor:pointer;background:#fff}
+  .overlay-toggle:hover{background:#f8fafc}
+  .overlay-toggle .left{display:flex;align-items:center;gap:7px}
+  .overlay-toggle input{accent-color:var(--accent)}
+  .overlay-count{color:#8792a3;font-size:.62rem}
+  .facility-key{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .reset-btn{width:100%;margin-top:7px;border:1px solid var(--border);background:#f8fafc;color:#475569;border-radius:8px;padding:7px;cursor:pointer;font-size:.68rem;font-weight:700}
+  .reset-btn:hover{background:#eef4fa}
 
-  .rank-item { display: flex; align-items: center; gap: 9px; padding: 8px 9px; border-radius: 8px; margin-bottom: 4px; cursor: pointer; transition: background 0.15s; }
-  .rank-item:hover { background: #252840; }
-  .rank-num { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; background:#252840; color:#00d4ff; }
-  .rank-info { flex: 1; min-width: 0; }
-  .rank-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rank-sub { font-size: 0.68rem; color: #888; }
-  .rank-score { font-size: 0.95rem; font-weight: 700; }
+  .tool-details{overflow:hidden}
+  .tool-details>summary{list-style:none;cursor:pointer;padding:10px 11px;font-size:.72rem;font-weight:800;color:#475569;display:flex;align-items:center;justify-content:space-between}
+  .tool-details>summary::-webkit-details-marker{display:none}
+  .tool-details>summary:after{content:'+';font-size:1rem;color:#8a96a7;font-weight:500}
+  .tool-details[open]>summary:after{content:'–'}
+  .tool-content{padding:0 11px 11px}
 
-  #map { flex: 1; min-width: 0; }
+  .legend-item{display:flex;align-items:flex-start;gap:7px;margin-bottom:6px;font-size:.69rem;line-height:1.3;color:#596579}
+  .legend-dot{width:11px;height:11px;border-radius:3px;flex-shrink:0;margin-top:1px}
+  .rank-item{display:flex;align-items:center;gap:8px;padding:7px;border-radius:8px;margin-bottom:3px;cursor:pointer}
+  .rank-item:hover{background:#f5f8fc}
+  .rank-num{width:21px;height:21px;border-radius:50%;display:grid;place-items:center;font-size:.65rem;font-weight:800;background:#edf5fd;color:#0b84f3;flex-shrink:0}
+  .rank-info{flex:1;min-width:0}.rank-name{font-size:.73rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rank-sub{font-size:.61rem;color:#8a96a7}.rank-score{font-size:.82rem;font-weight:800}
 
-  .detail-panel { width: 390px; background: #13151f; padding: 15px; overflow-y: auto; border-left: 1px solid #2a2d3e; }
-  .detail-hint { color: #666; font-size: 0.85rem; margin-top: 40px; text-align: center; line-height:1.5; }
-  .detail-title-row { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .detail-title-row h2 { font-size:1.25rem; }
-  .micro { font-size:0.68rem; color:#777; line-height:1.4; }
+  #map{flex:1;min-width:0;background:#e7eef5}
+  .detail-panel{width:370px;background:#f8fafc;border-left:1px solid var(--border);padding:13px;overflow-y:auto}
+  .detail-hint{background:#fff;border:1px dashed #cfd9e6;color:#718096;font-size:.8rem;line-height:1.55;padding:24px 18px;border-radius:13px;text-align:center;margin-top:10px}
+  .detail-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:13px;box-shadow:0 5px 18px rgba(15,23,42,.04);margin-bottom:10px}
+  .detail-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.detail-title-row h2{font-size:1.12rem;line-height:1.2}.locality-heading{color:#10213a}.locality-context{font-size:.66rem;color:#788496;margin-top:3px;line-height:1.4}.micro{font-size:.64rem;color:#8190a3;line-height:1.45}
+  .hero-score{display:grid;grid-template-columns:92px 1fr;align-items:center;gap:12px;margin-top:12px;padding-top:11px;border-top:1px solid #edf1f5}
+  .score-orb{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;background:#f7fafc;border:7px solid #eef2f7}.score-orb .num{font-size:1.5rem;font-weight:900}.score-copy .label{font-size:.63rem;text-transform:uppercase;letter-spacing:.6px;color:#8792a3}.score-copy .prio{font-size:.93rem;font-weight:800;margin-top:3px}.score-copy .decision{font-size:.68rem;color:#64748b;margin-top:3px;line-height:1.35}
+  .quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.quick-stat{background:#f8fafc;border:1px solid #edf1f5;border-radius:9px;padding:8px}.quick-stat .k{font-size:.57rem;color:#8a96a7;text-transform:uppercase}.quick-stat .v{font-size:.78rem;font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .profile-chip{margin-top:9px;padding:9px 10px;border-radius:9px;background:#f4f0ff;border:1px solid #e7dcff}.profile-chip .k{font-size:.59rem;color:#8574a6;text-transform:uppercase;letter-spacing:.6px}.profile-chip .v{font-size:.75rem;color:#593a91;font-weight:800;margin-top:2px}
 
-  .score-big { text-align: center; margin: 12px 0; }
-  .score-big .num { font-size: 2.35rem; font-weight: 800; }
-  .score-big .label { font-size: 0.7rem; color: #888; text-transform: uppercase; }
+  .detail-accordion{background:#fff;border:1px solid var(--border);border-radius:12px;margin-bottom:8px;overflow:hidden}
+  .detail-accordion>summary{list-style:none;cursor:pointer;padding:11px 12px;font-size:.73rem;font-weight:800;color:#3f4c60;display:flex;align-items:center;justify-content:space-between;background:#fff}
+  .detail-accordion>summary::-webkit-details-marker{display:none}.detail-accordion>summary:after{content:'⌄';color:#92a0b2;font-size:.85rem}.detail-accordion[open]>summary:after{content:'⌃'}
+  .accordion-body{padding:0 12px 12px;border-top:1px solid #f0f3f6}
+  .stat-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #f0f3f6;font-size:.72rem;color:#566276}.stat-row:last-child{border-bottom:none}.stat-val{font-weight:800;color:#263348;text-align:right}
+  .section-divider{border:none;border-top:1px solid #edf1f5;margin:10px 0}.section-title{font-size:.62rem;color:#8a96a7;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+  .why-box{background:#eef7ff;border:1px solid #d5eafb;border-left:3px solid var(--accent);border-radius:9px;padding:9px 10px;font-size:.7rem;line-height:1.5;color:#40526a;margin-top:8px}.warning-box{background:#fff8e9;border-color:#f3dda9;border-left-color:#d9a117}
+  .badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:.62rem;font-weight:800;margin:1px}.badge-high{background:#fdebed;color:#b4232d}.badge-medium{background:#fff4d8;color:#976400}.badge-low{background:#e7f7f1;color:#0e7a5c}.badge-nodata{background:#edf1f5;color:#64748b}.badge-strong{background:#e5f7f0;color:#0e7a5c}.badge-good{background:#eaf4ff;color:#1469a8}.badge-moderate{background:#fff4d8;color:#976400}.badge-limited{background:#fdebed;color:#b4232d}
+  .mode-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mode-card{background:#f8fafc;border:1px solid #edf1f5;border-radius:8px;padding:8px;text-align:center}.mode-card .m-label{font-size:.56rem;color:#8893a4;text-transform:uppercase}.mode-card .m-score{font-size:.9rem;font-weight:900;margin:2px 0}
 
-  .metric-bar { margin-bottom: 10px; }
-  .metric-label { display: flex; justify-content: space-between; font-size: 0.76rem; margin-bottom: 4px; }
-  .bar-track { background: #252840; border-radius: 4px; height: 7px; }
-  .bar-fill { height: 7px; border-radius: 4px; transition: width 0.4s; }
+  .simulator{background:#f7fbff;border:1px solid #dceaf7;border-radius:10px;padding:11px;margin-top:8px}.simulator h3{font-size:.72rem;color:#0b70c4;margin-bottom:4px}.sim-sub{font-size:.65rem;color:#65758a;line-height:1.45;margin-bottom:9px}.preset-row{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:9px}.preset-btn{border:1px solid #cddff0;background:#fff;color:#35546e;border-radius:7px;padding:7px 5px;cursor:pointer;font-size:.65rem;font-weight:700}.preset-btn:hover{border-color:#7dbdf6;background:#f7fbff}.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.field label{display:block;font-size:.59rem;color:#7c8899;margin-bottom:3px}.field input{width:100%;background:#fff;color:#223047;border:1px solid #cfd9e6;border-radius:7px;padding:7px;font-size:.7rem}.sim-actions{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:9px}.check-wrap{display:flex;align-items:center;gap:5px;color:#66758a;font-size:.63rem}.run-btn{border:none;background:var(--accent);color:#fff;font-weight:800;border-radius:8px;padding:8px 11px;cursor:pointer;font-size:.69rem}.run-btn:hover{background:#0876da}.sim-results{margin-top:9px}.before-after{display:grid;grid-template-columns:1fr 24px 1fr;gap:5px;align-items:center;margin-bottom:7px}.ba-card{background:#fff;border:1px solid #e4edf5;border-radius:8px;padding:8px}.ba-card .head{font-size:.58rem;color:#8a96a7;text-transform:uppercase}.ba-card .big{font-size:.9rem;font-weight:900;margin-top:2px}.arrow{text-align:center;color:#0b84f3;font-weight:800}.delta-positive{color:#0e8d69}.delta-negative{color:#c13b44}.result-row{display:grid;grid-template-columns:66px 1fr 16px 1fr;gap:4px;align-items:center;padding:6px 0;border-bottom:1px solid #edf1f5;font-size:.64rem}.result-mode{color:#68788b}.result-box{background:#fff;border:1px solid #e5edf5;border-radius:6px;padding:5px}.scenario-note{font-size:.61rem;color:#768599;line-height:1.45;margin-top:7px}
 
-  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; margin: 2px; }
-  .badge-high { background: #3d1a1a; color: #ff6b6b; }
-  .badge-medium { background: #3d3219; color: #ffd166; }
-  .badge-low { background: #1a3d22; color: #06d6a0; }
-  .badge-nodata { background: #2a2d3e; color: #aaa; }
-  .badge-strong { background:#15382d; color:#06d6a0; }
-  .badge-good { background:#12364b; color:#60b3ff; }
-  .badge-moderate { background:#3d3219; color:#ffd166; }
-  .badge-limited { background:#3d1a1a; color:#ff8b8b; }
+  .district-presets{display:flex;gap:5px;margin-bottom:8px}.district-preset-btn{flex:1;border:1px solid #d8e0ea;background:#fff;color:#526174;border-radius:7px;padding:6px 4px;font-size:.65rem;font-weight:800;cursor:pointer}.district-preset-btn.active{background:#eaf4ff;border-color:#94c7f5;color:#0b70c4}.district-kpi{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:7px 0}.district-kpi-card{background:#f8fafc;border:1px solid #edf1f5;border-radius:8px;padding:7px}.district-kpi-card .k{font-size:.56rem;color:#8a96a7;text-transform:uppercase}.district-kpi-card .v{font-size:.9rem;font-weight:900;margin-top:1px}.district-shift{background:#edf9f4;border:1px solid #cfeee1;border-radius:8px;padding:8px;margin:7px 0}.district-shift .big{font-size:.95rem;font-weight:900;color:#0e8d69}.district-context{font-size:.65rem;color:#66758a;line-height:1.45;margin-top:6px}
 
-  .stat-row { display: flex; justify-content: space-between; gap:12px; padding: 6px 0; border-bottom: 1px solid #252840; font-size: 0.79rem; }
-  .stat-row:last-child { border-bottom: none; }
-  .stat-val { font-weight: 600; color: #e0e0e0; text-align:right; }
+  .leaflet-tooltip.signal-tooltip{background:#fff;border:1px solid #d5deea;color:#243247;box-shadow:0 4px 15px rgba(15,23,42,.12);border-radius:8px;padding:7px 9px;font-family:'Segoe UI',sans-serif}.leaflet-tooltip.signal-tooltip:before{border-top-color:#d5deea}.tt-title{font-size:.72rem;font-weight:800;color:#172033}.tt-sub{font-size:.61rem;color:#788599;margin-top:1px}.tt-metric{font-size:.65rem;margin-top:3px}.facility-popup-title{font-weight:800;margin-bottom:3px}
 
-  .why-box { background: #1a1d2e; border-radius: 8px; padding: 11px; margin-top: 10px; font-size: 0.78rem; line-height: 1.5; color: #c0c0c0; border-left: 3px solid #00d4ff; }
-  .warning-box { background:#2a2213; border-left-color:#ffd166; }
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;align-items:center;justify-content:center;padding:20px;z-index:3000;backdrop-filter:blur(2px)}.modal-backdrop.show{display:flex}.info-modal{background:#fff;width:min(720px,100%);max-height:86vh;overflow:auto;border-radius:18px;box-shadow:0 24px 70px rgba(15,23,42,.25);border:1px solid #dfe7f0}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid #edf1f5}.modal-head h2{font-size:1rem}.modal-close{border:none;background:#f1f5f9;width:30px;height:30px;border-radius:8px;cursor:pointer;color:#64748b;font-size:1rem}.modal-body{padding:16px 18px 19px}.flow-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 14px}.flow-step{background:#f8fafc;border:1px solid #e5ebf2;border-radius:10px;padding:10px;text-align:center}.flow-step .n{width:24px;height:24px;margin:0 auto 5px;border-radius:50%;background:#eaf4ff;color:#0b70c4;display:grid;place-items:center;font-size:.66rem;font-weight:900}.flow-step .t{font-size:.67rem;font-weight:800}.flow-step .s{font-size:.58rem;color:#8994a4;margin-top:2px;line-height:1.3}.modal-section{margin-top:13px}.modal-section h3{font-size:.72rem;margin-bottom:5px}.modal-section p,.modal-section li{font-size:.69rem;color:#58677a;line-height:1.5}.modal-section ul{padding-left:18px}
 
-  .ai-profile { background: #1e2a3e; border-radius: 8px; padding: 10px 12px; margin: 9px 0; }
-  .ai-profile .label { font-size: 0.67rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-  .ai-profile .value { font-size: 0.84rem; color: #60b3ff; font-weight: 600; margin-top: 3px; }
-  .ai-profile .desc { font-size:0.7rem; color:#9aa4b2; line-height:1.4; margin-top:4px; }
+  @media(max-width:1100px){.sidebar{width:218px}.detail-panel{width:340px}header{grid-template-columns:auto minmax(220px,1fr) auto;gap:10px}.pilot-badge{display:none}}
+  @media(max-width:900px){body{overflow:auto;height:auto;min-height:100vh}header{position:sticky;top:0;grid-template-columns:1fr auto;gap:8px;padding:9px 11px}.brand span{display:none}.header-search{grid-column:1/-1;grid-row:2}.header-actions{grid-column:2}.pilot-badge{display:none}.main{display:block;overflow:visible}.sidebar{width:100%;border-right:none;border-bottom:1px solid var(--border);padding:8px;display:grid;grid-template-columns:1.4fr 1fr;gap:8px;overflow:visible}.sidebar .panel,.sidebar .tool-details{margin:0}.sidebar .tool-details:nth-of-type(n+2){grid-column:span 1}#map{height:56vh;min-height:430px}.detail-panel{width:100%;border-left:none;border-top:1px solid var(--border);overflow:visible}.search-status{position:static;margin-top:5px;box-shadow:none;max-width:none}.flow-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){header{grid-template-columns:1fr auto}.brand h1{font-size:.96rem}.header-btn{padding:7px 8px;font-size:.65rem}.sidebar{display:block}.sidebar>*{margin-bottom:7px}.view-btn .sub{display:none}.panel h3{margin-bottom:6px}#map{height:52vh;min-height:360px}.detail-panel{padding:9px}.quick-stats{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}.preset-row{grid-template-columns:1fr 1fr 1fr}.sim-actions{align-items:flex-start;flex-direction:column}.run-btn{width:100%}.flow-grid{grid-template-columns:1fr 1fr}.pilot-badge{display:none}}
 
-  .section-divider { border: none; border-top: 1px solid #2a2d3e; margin: 12px 0; }
-  .section-title { font-size:0.7rem; color:#888; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
 
-  .mode-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-  .mode-card { background:#1a1d2e; border-radius:8px; padding:8px; text-align:center; }
-  .mode-card .m-label { font-size:0.65rem; color:#888; text-transform:uppercase; }
-  .mode-card .m-score { font-size:1.05rem; font-weight:700; margin:3px 0; }
+  /* ===== Phase 6E v2: clearer, themed, more playful UI ===== */
+  body.theme-general{--accent:#1687d9;--accent-soft:#e8f5ff;--accent-border:#b9ddf7;--page-tint:#f2faff;--sidebar-tint:#f8fcff;--detail-tint:#f6fbff;--accent-ink:#0e639f}
+  body.theme-education{--accent:#d99310;--accent-soft:#fff2ce;--accent-border:#f5d477;--page-tint:#fffaf0;--sidebar-tint:#fffdf6;--detail-tint:#fffbf2;--accent-ink:#8f5d00}
+  body.theme-healthcare{--accent:#df4964;--accent-soft:#ffe8ed;--accent-border:#f7bdc8;--page-tint:#fff6f8;--sidebar-tint:#fff9fa;--detail-tint:#fff8fa;--accent-ink:#a62f47}
+  body.theme-evidence{--accent:#7b61d1;--accent-soft:#eeeaff;--accent-border:#d2c6ff;--page-tint:#faf8ff;--sidebar-tint:#fbfaff;--detail-tint:#faf8ff;--accent-ink:#5940ae}
+  body.theme-geoai{--accent:#178f83;--accent-soft:#e5f7f4;--accent-border:#b8e5de;--page-tint:#f3fbfa;--sidebar-tint:#f8fdfc;--detail-tint:#f6fcfb;--accent-ink:#0f6b63}
 
-  .simulator { background:#171a28; border:1px solid #2a2d3e; border-radius:10px; padding:12px; margin-top:12px; }
-  .simulator h3 { font-size:0.75rem; color:#00d4ff; margin-bottom:4px; }
-  .sim-sub { font-size:0.68rem; color:#888; line-height:1.4; margin-bottom:10px; }
-  .preset-row { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px; }
-  .preset-btn { border:1px solid #334056; background:#1e2a3e; color:#d8e6f4; border-radius:7px; padding:7px 5px; cursor:pointer; font-size:0.68rem; }
-  .preset-btn:hover { border-color:#00d4ff; }
-  .form-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; }
-  .field label { display:block; font-size:0.64rem; color:#888; margin-bottom:3px; }
-  .field input { width:100%; background:#10131c; color:#eee; border:1px solid #34394b; border-radius:6px; padding:7px; font-size:0.75rem; }
-  .sim-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:9px; }
-  .check-wrap { display:flex; align-items:center; gap:6px; color:#aaa; font-size:0.68rem; }
-  .run-btn { border:none; background:#00b7dc; color:#061117; font-weight:700; border-radius:7px; padding:8px 12px; cursor:pointer; font-size:0.74rem; }
-  .run-btn:hover { background:#00d4ff; }
+  body{background:var(--page-tint);transition:background-color .25s ease}
+  header{border-top:4px solid var(--accent);background:linear-gradient(90deg,var(--accent-soft) 0%,rgba(255,255,255,.98) 30%,rgba(255,255,255,.98) 100%);transition:border-color .2s,background .25s}
+  .brand-mark{background:linear-gradient(135deg,var(--accent),#2bb7a7);transition:background .25s}
+  .search-btn,.run-btn{background:var(--accent)}
+  .search-btn:hover,.run-btn:hover{filter:brightness(.93);background:var(--accent)}
+  .pilot-badge{background:var(--accent-soft);color:var(--accent-ink);border-color:var(--accent-border)}
+  .header-search-row:focus-within{border-color:var(--accent-border);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 13%,transparent)}
 
-  .sim-results { margin-top:10px; }
-  .before-after { display:grid; grid-template-columns:1fr 26px 1fr; gap:5px; align-items:center; margin-bottom:8px; }
-  .ba-card { background:#1a1d2e; border-radius:8px; padding:8px; }
-  .ba-card .head { font-size:0.63rem; color:#888; text-transform:uppercase; }
-  .ba-card .big { font-size:1rem; font-weight:700; margin-top:2px; }
-  .arrow { text-align:center; color:#00d4ff; font-weight:700; }
-  .delta-positive { color:#06d6a0; }
-  .delta-negative { color:#ff6b6b; }
-  .result-row { display:grid; grid-template-columns:78px 1fr 18px 1fr; gap:5px; align-items:center; padding:6px 0; border-bottom:1px solid #252840; font-size:0.71rem; }
-  .result-row:last-child { border-bottom:none; }
-  .result-mode { color:#aaa; }
-  .result-box { background:#1a1d2e; border-radius:6px; padding:5px 6px; }
-  .scenario-note { font-size:0.67rem; color:#8d98a8; line-height:1.45; margin-top:8px; }
+  .sidebar{width:220px;background:var(--sidebar-tint);min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:12px 10px 20px;transition:background .25s;scrollbar-width:thin;scrollbar-color:#c4ceda transparent}
+  .sidebar::-webkit-scrollbar,.detail-panel::-webkit-scrollbar{width:7px}.sidebar::-webkit-scrollbar-thumb,.detail-panel::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}.sidebar::-webkit-scrollbar-track,.detail-panel::-webkit-scrollbar-track{background:transparent}
+  .detail-panel{background:var(--detail-tint);min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable;transition:background .25s}
+  .panel,.tool-details,.detail-card,.detail-accordion{border-color:color-mix(in srgb,var(--accent) 11%,#e2e8f0)}
+  .view-panel{padding:10px}
+  .view-list{display:flex;flex-direction:column;gap:4px}
+  .view-btn{margin:0;padding:8px 8px;border-radius:10px;min-height:48px}
+  .view-btn .icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:.95rem;flex-shrink:0}
+  .view-btn[data-view="general"] .icon{background:#e4f4ff}
+  .view-btn[data-view="education"] .icon{background:#fff0c2}
+  .view-btn[data-view="healthcare"] .icon{background:#ffe4e9}
+  .view-btn[data-view="evidence"] .icon{background:#ece7ff}
+  .view-btn[data-view="geoai"] .icon{background:#dff5f1}
+  .view-btn .label{font-size:.75rem}.view-btn .sub{font-size:.58rem}
+  .view-btn.active{background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent-ink);box-shadow:inset 4px 0 0 var(--accent),0 4px 12px color-mix(in srgb,var(--accent) 10%,transparent)}
+  .view-btn.active .icon{background:#fff;box-shadow:0 2px 7px rgba(15,23,42,.08)}
+  .tool-details>summary{padding:9px 10px}.tool-details[open]>summary{background:var(--accent-soft);color:var(--accent-ink)}
+  .district-preset-btn.active{background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent-ink)}
 
-  .loading { color:#888; padding:20px; }
+  .map-shell{flex:1;min-width:0;min-height:0;position:relative;overflow:hidden;background:#e7eef5}
+  #map{width:100%;height:100%;min-width:0}
+  .map-view-banner{position:absolute;left:56px;top:12px;z-index:800;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border:1px solid var(--accent-border);box-shadow:0 8px 24px rgba(15,23,42,.12);border-radius:12px;padding:7px 10px;display:flex;align-items:center;gap:8px;pointer-events:none;max-width:260px}
+  .map-view-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);flex-shrink:0}
+  .map-view-banner strong{display:block;color:var(--accent-ink);font-size:.72rem;line-height:1.15}.map-view-banner small{display:block;color:#7c8798;font-size:.56rem;margin-top:2px}
+  .map-tools-card{position:absolute;left:12px;top:82px;z-index:850;width:168px;border-radius:12px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);border:1px solid rgba(203,213,225,.9);box-shadow:0 8px 24px rgba(15,23,42,.13);overflow:hidden}
+  .map-tools-toggle{width:100%;border:none;background:transparent;padding:9px 10px;display:flex;justify-content:space-between;align-items:center;color:#344256;font-size:.68rem;font-weight:800;cursor:pointer}.map-tools-toggle:hover{background:var(--accent-soft);color:var(--accent-ink)}
+  .map-tools-body{display:none;padding:0 8px 8px;border-top:1px solid #edf1f5}
+  .map-layer-row{display:flex;align-items:center;justify-content:space-between;gap:7px;padding:8px 2px;border-bottom:1px solid #f0f3f6;font-size:.67rem;color:#475569;cursor:pointer}.map-layer-row>span{display:flex;align-items:center;gap:6px}.map-layer-row input{accent-color:var(--accent)}.map-layer-row b{font-size:.59rem;color:#8a96a7}
+  .map-reset-inline{width:100%;border:none;background:var(--accent-soft);color:var(--accent-ink);border-radius:7px;padding:7px;margin-top:7px;font-size:.63rem;font-weight:800;cursor:pointer}.map-reset-inline:hover{filter:brightness(.98)}
 
-  @media (max-width: 1050px) {
-    .sidebar { width:240px; }
-    .detail-panel { width:340px; }
+  .detail-card{border-top:4px solid var(--accent);background:linear-gradient(180deg,#fff 0%,color-mix(in srgb,var(--accent-soft) 34%,#fff) 100%);box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 8%,rgba(15,23,42,.05))}
+  .locality-heading{color:#172033}.hero-score{border-top-color:color-mix(in srgb,var(--accent) 15%,#edf1f5)}
+  .quick-stat{background:rgba(255,255,255,.82);border-color:color-mix(in srgb,var(--accent) 10%,#edf1f5)}
+  .profile-chip{background:linear-gradient(135deg,var(--accent-soft),#fff);border-color:var(--accent-border)}.profile-chip .k{color:var(--accent-ink);opacity:.72}.profile-chip .v{color:var(--accent-ink)}
+  .detail-accordion>summary:hover{background:var(--accent-soft);color:var(--accent-ink)}
+  .detail-accordion[open]>summary{background:color-mix(in srgb,var(--accent-soft) 55%,#fff);color:var(--accent-ink)}
+  .why-box{background:color-mix(in srgb,var(--accent-soft) 60%,#fff);border-color:var(--accent-border);border-left-color:var(--accent)}
+  .warning-box{background:#fff8e9;border-color:#f3dda9;border-left-color:#d9a117}
+  .simulator{background:color-mix(in srgb,var(--accent-soft) 48%,#fff);border-color:var(--accent-border)}.simulator h3{color:var(--accent-ink)}
+  .arrow{color:var(--accent)}
+  .flow-step .n{background:var(--accent-soft);color:var(--accent-ink)}
+
+  @media(max-width:1100px){.sidebar{width:205px}.detail-panel{width:335px}.map-view-banner{max-width:220px}}
+  @media(max-width:900px){
+    body{overflow:auto;height:auto;min-height:100vh}
+    .main{display:block;overflow:visible}
+    .sidebar{width:100%;padding:8px;border-right:none;border-bottom:1px solid var(--border);overflow:visible;display:block}
+    .view-panel{overflow:hidden}.view-list{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:2px;scrollbar-width:none}.view-list::-webkit-scrollbar{display:none}
+    .view-btn{min-width:145px;flex:0 0 auto}.view-btn .sub{display:none}
+    .sidebar>.tool-details{display:inline-block;width:calc(33.333% - 6px);vertical-align:top;margin:7px 3px 0}
+    .map-shell{height:56vh;min-height:430px}.detail-panel{width:100%;border-left:none;border-top:1px solid var(--border);overflow:visible}
+    .map-view-banner{left:54px;top:10px}.map-tools-card{left:10px;top:76px}
+  }
+  @media(max-width:620px){
+    .sidebar>.tool-details{display:block;width:100%;margin:6px 0 0}
+    .view-btn{min-width:132px}.map-shell{height:52vh;min-height:360px}
+    .map-view-banner{left:50px;right:8px;max-width:none;width:max-content}.map-view-banner small{display:none}
+    .map-tools-card{left:8px;top:68px;width:154px}
   }
 
-  /* District-wide scenario summary */
-  .district-presets { display:flex; gap:6px; margin-bottom:10px; }
-  .district-preset-btn { flex:1; border:1px solid #34384d; background:#202333; color:#d8d8e0; border-radius:7px; padding:7px 5px; font-size:0.72rem; font-weight:600; cursor:pointer; }
-  .district-preset-btn:hover { border-color:#00d4ff; }
-  .district-preset-btn.active { background:#1e3a5f; border-color:#00d4ff; color:#fff; }
-  .district-kpi { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin:8px 0; }
-  .district-kpi-card { background:#13151f; border:1px solid #2a2d3e; border-radius:8px; padding:8px; }
-  .district-kpi-card .k { font-size:0.66rem; color:#888; text-transform:uppercase; letter-spacing:.4px; }
-  .district-kpi-card .v { font-size:1rem; font-weight:800; margin-top:2px; }
-  .district-shift { background:#13261f; border:1px solid #1f513f; border-radius:8px; padding:9px; margin:8px 0; }
-  .district-shift .big { font-size:1.1rem; font-weight:800; color:#06d6a0; }
-  .district-context { font-size:0.72rem; color:#aaa; line-height:1.5; margin-top:7px; }
+
+  /* ===== Phase 6E v3: stronger full-page themes + reliable sidebar scrolling ===== */
+
+  /*
+    Theme intent:
+    - The MAP stays visually neutral so analytical map colours remain meaningful.
+    - Header, left controls, right details, cards and controls inherit the active view colour.
+    - Colours stay deliberately light enough for readability.
+  */
+  body.theme-general{
+    --accent:#1687d9; --accent-soft:#dff1ff; --accent-border:#9fd1f4;
+    --page-tint:#eaf6ff; --sidebar-tint:#e3f3ff; --detail-tint:#e8f5ff;
+    --header-tint:#e1f2ff; --card-tint:#f1f9ff; --card-strong:#e7f5ff; --accent-ink:#0e639f;
+  }
+  body.theme-education{
+    --accent:#d99310; --accent-soft:#ffedb7; --accent-border:#efca66;
+    --page-tint:#fff4d6; --sidebar-tint:#fff0c5; --detail-tint:#fff4d7;
+    --header-tint:#ffefc2; --card-tint:#fff9e8; --card-strong:#fff2cd; --accent-ink:#8f5d00;
+  }
+  body.theme-healthcare{
+    --accent:#df4964; --accent-soft:#ffdce4; --accent-border:#efa9b7;
+    --page-tint:#ffeaf0; --sidebar-tint:#ffe3ea; --detail-tint:#ffe9ee;
+    --header-tint:#ffe1e8; --card-tint:#fff3f6; --card-strong:#ffe8ed; --accent-ink:#a62f47;
+  }
+  body.theme-evidence{
+    --accent:#7b61d1; --accent-soft:#e5ddff; --accent-border:#c4b5f5;
+    --page-tint:#f0ebff; --sidebar-tint:#ebe5ff; --detail-tint:#f0ebff;
+    --header-tint:#e9e2ff; --card-tint:#f8f5ff; --card-strong:#eee8ff; --accent-ink:#5940ae;
+  }
+  body.theme-geoai{
+    --accent:#178f83; --accent-soft:#d6f2ed; --accent-border:#9dd8cf;
+    --page-tint:#e5f7f4; --sidebar-tint:#dcf3ef; --detail-tint:#e4f6f3;
+    --header-tint:#d9f2ed; --card-tint:#f0faf8; --card-strong:#e1f5f1; --accent-ink:#0f6b63;
+  }
+
+  body{
+    background:var(--page-tint);
+    transition:background .25s ease;
+  }
+
+  /* Theme the whole non-map shell, not just tiny accents. */
+  header{
+    background:color-mix(in srgb,var(--header-tint) 88%,#fff 12%);
+    border-bottom:1px solid var(--accent-border);
+    box-shadow:0 4px 18px color-mix(in srgb,var(--accent) 10%,transparent);
+    transition:background .25s,border-color .25s;
+  }
+  .brand h1{color:var(--accent-ink)}
+  .brand span{color:color-mix(in srgb,var(--accent-ink) 65%,#64748b)}
+  .brand-mark{
+    background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 58%,#20b99a));
+    box-shadow:0 7px 18px color-mix(in srgb,var(--accent) 25%,transparent);
+  }
+  .header-search-row{
+    background:color-mix(in srgb,var(--card-tint) 78%,#fff);
+    border-color:var(--accent-border);
+  }
+  .header-search-row:focus-within{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent);
+  }
+  .pilot-badge{
+    background:var(--card-strong); color:var(--accent-ink); border-color:var(--accent-border);
+  }
+  .header-btn{
+    background:color-mix(in srgb,var(--card-tint) 82%,#fff);
+    border-color:var(--accent-border); color:var(--accent-ink);
+  }
+  .header-btn:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .search-status{background:var(--card-tint);border-color:var(--accent-border)}
+
+  /*
+    IMPORTANT: both side columns are true independent scroll regions.
+    `height:100%`, `min-height:0`, and `overflow-y:scroll` together avoid the
+    flexbox overflow issue that was clipping the bottom controls.
+  */
+  .main{
+    min-height:0;
+    overflow:hidden;
+    background:var(--page-tint);
+    transition:background .25s;
+  }
+  .sidebar{
+    width:228px;
+    flex:0 0 228px;
+    height:100%;
+    max-height:100%;
+    min-height:0;
+    align-self:stretch;
+    overflow-x:hidden !important;
+    overflow-y:scroll !important;
+    overscroll-behavior-y:contain;
+    scrollbar-gutter:stable;
+    background:var(--sidebar-tint);
+    border-right:1px solid var(--accent-border);
+    padding:12px 10px 64px;
+    gap:10px;
+    transition:background .25s,border-color .25s;
+  }
+  .detail-panel{
+    width:370px;
+    flex:0 0 370px;
+    height:100%;
+    max-height:100%;
+    min-height:0;
+    align-self:stretch;
+    overflow-x:hidden !important;
+    overflow-y:scroll !important;
+    overscroll-behavior-y:contain;
+    scrollbar-gutter:stable;
+    background:var(--detail-tint);
+    border-left:1px solid var(--accent-border);
+    padding-bottom:64px;
+    transition:background .25s,border-color .25s;
+  }
+
+  /* Always-visible scrollbars on desktop, so it is obvious both sides scroll. */
+  .sidebar::-webkit-scrollbar,.detail-panel::-webkit-scrollbar{width:10px}
+  .sidebar::-webkit-scrollbar-track,.detail-panel::-webkit-scrollbar-track{
+    background:color-mix(in srgb,var(--accent-soft) 55%,#fff);
+    border-radius:99px;
+  }
+  .sidebar::-webkit-scrollbar-thumb,.detail-panel::-webkit-scrollbar-thumb{
+    background:color-mix(in srgb,var(--accent) 45%,#a8b4c3);
+    border:2px solid color-mix(in srgb,var(--accent-soft) 55%,#fff);
+    border-radius:99px;
+  }
+  .sidebar::-webkit-scrollbar-thumb:hover,.detail-panel::-webkit-scrollbar-thumb:hover{
+    background:color-mix(in srgb,var(--accent) 70%,#8a96a7);
+  }
+  .sidebar,.detail-panel{
+    scrollbar-width:auto;
+    scrollbar-color:color-mix(in srgb,var(--accent) 50%,#a8b4c3)
+                    color-mix(in srgb,var(--accent-soft) 55%,#fff);
+  }
+
+  /* Left controls are now visually the same "open when needed" language as right accordions. */
+  .panel,.tool-details{
+    background:color-mix(in srgb,var(--card-tint) 88%,#fff);
+    border-color:var(--accent-border);
+    box-shadow:0 5px 16px color-mix(in srgb,var(--accent) 7%,transparent);
+  }
+  .panel h3{color:var(--accent-ink)}
+  .view-btn:hover{background:color-mix(in srgb,var(--accent-soft) 60%,#fff)}
+  .view-btn.active{
+    background:var(--accent-soft);
+    border-color:var(--accent);
+    color:var(--accent-ink);
+    box-shadow:inset 3px 0 0 var(--accent);
+  }
+  .view-btn .sub{color:color-mix(in srgb,var(--accent-ink) 55%,#7c8798)}
+
+  .tool-details>summary{
+    background:color-mix(in srgb,var(--card-tint) 84%,#fff);
+    color:var(--accent-ink);
+    min-height:42px;
+    border-radius:11px;
+  }
+  .tool-details>summary:after{
+    content:'⌄';
+    font-size:.88rem;
+    color:var(--accent-ink);
+    transition:transform .15s;
+  }
+  .tool-details[open]>summary{
+    background:var(--card-strong);
+    border-bottom-left-radius:0;
+    border-bottom-right-radius:0;
+  }
+  .tool-details[open]>summary:after{content:'⌃'}
+  .tool-details[open] .tool-content{
+    background:color-mix(in srgb,var(--card-tint) 78%,#fff);
+    border-top:1px solid color-mix(in srgb,var(--accent-border) 70%,transparent);
+    padding-top:10px;
+  }
+  .rank-item:hover{background:var(--accent-soft)}
+  .rank-num{background:var(--accent-soft);color:var(--accent-ink)}
+
+  /* Right cards are visibly themed, not white boxes floating on a tinted page. */
+  .detail-hint,
+  .detail-card,
+  .detail-accordion{
+    background:color-mix(in srgb,var(--card-tint) 86%,#fff);
+    border-color:var(--accent-border);
+  }
+  .detail-card{
+    background:linear-gradient(
+      180deg,
+      color-mix(in srgb,var(--card-tint) 92%,#fff) 0%,
+      color-mix(in srgb,var(--card-strong) 78%,#fff) 100%
+    );
+  }
+  .detail-accordion>summary{
+    background:color-mix(in srgb,var(--card-tint) 88%,#fff);
+    color:color-mix(in srgb,var(--accent-ink) 78%,#334155);
+  }
+  .detail-accordion>summary:hover{background:var(--accent-soft)}
+  .detail-accordion[open]>summary{
+    background:var(--card-strong);
+    color:var(--accent-ink);
+  }
+  .accordion-body{
+    background:color-mix(in srgb,var(--card-tint) 72%,#fff);
+    border-top-color:var(--accent-border);
+  }
+  .quick-stat{background:color-mix(in srgb,var(--card-tint) 82%,#fff);border-color:var(--accent-border)}
+  .score-orb{background:var(--card-tint);border-color:var(--accent-soft)}
+
+  /* Buttons/forms also inherit the current lens colour. */
+  .district-preset-btn,.preset-btn{
+    background:color-mix(in srgb,var(--card-tint) 85%,#fff);
+    border-color:var(--accent-border);
+  }
+  .district-preset-btn:hover,.preset-btn:hover{background:var(--accent-soft)}
+  .district-preset-btn.active,.preset-btn.active{
+    background:var(--accent-soft);
+    border-color:var(--accent);
+    color:var(--accent-ink);
+  }
+
+  /* Desktop: keep sidebars scrollable even at intermediate widths. */
+  @media (min-width:901px){
+    .sidebar,.detail-panel{
+      overflow-y:scroll !important;
+      height:100% !important;
+      max-height:100% !important;
+    }
+  }
+
+  /* Tablet/mobile intentionally becomes page-scrolling rather than nested side scrollbars. */
+  @media(max-width:900px){
+    .main{background:var(--page-tint)}
+    .sidebar{
+      width:100%;
+      max-height:none;
+      height:auto;
+      overflow:visible !important;
+      padding:9px;
+      background:var(--sidebar-tint);
+    }
+    .detail-panel{
+      width:100%;
+      max-height:none;
+      height:auto;
+      overflow:visible !important;
+      padding-bottom:20px;
+      background:var(--detail-tint);
+    }
+    .sidebar>.tool-details{
+      border-color:var(--accent-border);
+      background:var(--card-tint);
+    }
+  }
 
 
-  /* Phase 6D map exploration */
-  .search-row { display:flex; gap:6px; }
-  .search-row input { flex:1; min-width:0; background:#10131c; color:#eee; border:1px solid #34394b; border-radius:7px; padding:8px 9px; font-size:0.76rem; }
-  .search-row input:focus { outline:none; border-color:#00d4ff; box-shadow:0 0 0 1px rgba(0,212,255,.18); }
-  .search-btn, .reset-btn { border:1px solid #344055; border-radius:7px; background:#1e2a3e; color:#e5edf7; padding:7px 9px; cursor:pointer; font-size:0.71rem; font-weight:600; }
-  .search-btn:hover, .reset-btn:hover { border-color:#00d4ff; }
-  .search-status { min-height:16px; margin-top:6px; font-size:0.67rem; color:#8d98a8; line-height:1.35; }
-  .map-tool-row { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid #252840; }
-  .overlay-list { display:flex; flex-direction:column; gap:7px; margin-top:9px; }
-  .overlay-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; background:#151824; border:1px solid #292e40; border-radius:7px; padding:7px 8px; font-size:0.72rem; cursor:pointer; }
-  .overlay-toggle .left { display:flex; align-items:center; gap:7px; }
-  .overlay-toggle input { accent-color:#00d4ff; }
-  .overlay-count { color:#788599; font-size:0.65rem; }
-  .facility-key { width:9px; height:9px; border-radius:50%; display:inline-block; }
-  .locality-heading { color:#eaf7ff; }
-  .locality-context { font-size:0.69rem; color:#7f8b9b; margin-top:3px; line-height:1.4; }
-  .far-locality { color:#a2a9b4; }
-  .leaflet-tooltip.signal-tooltip { background:#151824; border:1px solid #384156; color:#edf4fb; box-shadow:0 4px 14px rgba(0,0,0,.35); border-radius:7px; padding:7px 9px; font-family:'Segoe UI',sans-serif; }
-  .leaflet-tooltip.signal-tooltip:before { border-top-color:#384156; }
-  .tt-title { font-size:.76rem; font-weight:700; color:#fff; }
-  .tt-sub { font-size:.64rem; color:#9aa5b5; margin-top:1px; }
-  .tt-metric { font-size:.69rem; margin-top:4px; }
-  .facility-popup-title { font-weight:700; margin-bottom:3px; }
+  /* ===== Phase 6E v4: left sidebar never needs to scroll ===== */
+
+  /*
+    Desktop sidebar is intentionally finite:
+    - map views
+    - three "open on demand" tool buttons
+    Heavy content lives in a slide-out map drawer instead.
+  */
+  @media (min-width:901px){
+    body{
+      display:grid !important;
+      grid-template-rows:auto minmax(0,1fr) !important;
+      height:100vh !important;
+      overflow:hidden !important;
+    }
+    .main{
+      height:auto !important;
+      min-height:0 !important;
+      overflow:hidden !important;
+    }
+    .sidebar{
+      width:228px !important;
+      flex:0 0 228px !important;
+      height:100% !important;
+      max-height:100% !important;
+      overflow:hidden !important;
+      padding:12px 10px !important;
+      display:flex !important;
+      flex-direction:column !important;
+      gap:10px !important;
+    }
+    .detail-panel{
+      height:100% !important;
+      max-height:100% !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+    }
+  }
+
+  .quick-tools-panel{padding:10px}
+  .quick-tool-list{display:flex;flex-direction:column;gap:6px}
+  .quick-tool-btn{
+    width:100%;
+    display:grid;
+    grid-template-columns:32px minmax(0,1fr) 15px;
+    gap:8px;
+    align-items:center;
+    border:1px solid var(--accent-border);
+    border-radius:10px;
+    padding:8px;
+    background:color-mix(in srgb,var(--card-tint) 88%,#fff);
+    color:#1f2d3d;
+    text-align:left;
+    cursor:pointer;
+    transition:transform .15s,background .15s,border-color .15s,box-shadow .15s;
+  }
+  .quick-tool-btn:hover{
+    background:var(--accent-soft);
+    border-color:var(--accent);
+    transform:translateX(2px);
+    box-shadow:0 4px 12px color-mix(in srgb,var(--accent) 10%,transparent);
+  }
+  .quick-tool-icon{
+    width:32px;height:32px;border-radius:9px;
+    display:grid;place-items:center;
+    background:var(--accent-soft);
+    font-size:.95rem;
+  }
+  .quick-tool-btn b{display:block;font-size:.71rem;color:var(--accent-ink);line-height:1.15}
+  .quick-tool-btn small{display:block;font-size:.56rem;color:#718096;line-height:1.25;margin-top:2px}
+  .quick-tool-arrow{font-size:1.2rem;color:var(--accent-ink);text-align:right}
+
+  /* Slide-out tool drawer lives INSIDE the map. */
+  .left-tool-drawer{
+    position:absolute;
+    z-index:890;
+    top:12px;
+    bottom:12px;
+    left:12px;
+    width:min(340px,calc(100% - 24px));
+    display:flex;
+    flex-direction:column;
+    background:color-mix(in srgb,var(--card-tint) 94%,#fff);
+    border:1px solid var(--accent-border);
+    border-radius:16px;
+    box-shadow:0 16px 46px rgba(15,23,42,.20);
+    overflow:hidden;
+    transform:translateX(calc(-100% - 30px));
+    opacity:0;
+    pointer-events:none;
+    transition:transform .22s ease,opacity .18s ease,background .25s,border-color .25s;
+  }
+  .left-tool-drawer.open{
+    transform:translateX(0);
+    opacity:1;
+    pointer-events:auto;
+  }
+  .left-tool-drawer-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:14px 14px 12px;
+    background:var(--card-strong);
+    border-bottom:1px solid var(--accent-border);
+  }
+  .left-tool-kicker{
+    font-size:.55rem;font-weight:900;letter-spacing:1.1px;color:var(--accent-ink);opacity:.68
+  }
+  .left-tool-drawer-head h2{
+    margin-top:2px;font-size:.96rem;color:var(--accent-ink);line-height:1.2
+  }
+  .left-tool-close{
+    width:32px;height:32px;border-radius:9px;border:1px solid var(--accent-border);
+    background:color-mix(in srgb,var(--card-tint) 82%,#fff);
+    color:var(--accent-ink);font-size:1.25rem;line-height:1;cursor:pointer;
+  }
+  .left-tool-close:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .left-tool-drawer-body{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    padding:13px;
+    overscroll-behavior:contain;
+  }
+  .left-tool-section{display:none}
+  .left-tool-section.active{display:block}
+  .drawer-content{padding:0}
+  .drawer-section-title{
+    font-size:.78rem;font-weight:900;color:var(--accent-ink);margin-bottom:8px
+  }
+  .drawer-help{
+    font-size:.65rem;line-height:1.45;color:#66758a;margin-bottom:10px
+  }
+
+  /* Ranking is much easier to scan when it has room in a drawer. */
+  .left-tool-drawer .rank-item{
+    padding:9px 8px;
+    margin-bottom:5px;
+    border:1px solid color-mix(in srgb,var(--accent-border) 65%,transparent);
+    background:color-mix(in srgb,var(--card-tint) 80%,#fff);
+  }
+  .left-tool-drawer .rank-item:hover{background:var(--accent-soft)}
+
+  /* Move map controls right when the drawer is open so they don't sit underneath it. */
+  .map-shell.drawer-open .map-view-banner,
+  .map-shell.drawer-open .map-tools-card{
+    opacity:0;
+    pointer-events:none;
+  }
+
+  @media(max-width:900px){
+    .quick-tools-panel{margin-top:7px}
+    .quick-tool-list{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .quick-tool-btn{
+      grid-template-columns:26px 1fr;
+      padding:7px;
+    }
+    .quick-tool-icon{width:26px;height:26px}
+    .quick-tool-arrow{display:none}
+    .quick-tool-btn small{display:none}
+    .left-tool-drawer{
+      position:absolute;
+      top:8px;left:8px;right:8px;bottom:8px;
+      width:auto;
+    }
+  }
+  @media(max-width:620px){
+    .quick-tool-list{grid-template-columns:1fr}
+    .quick-tool-btn small{display:block}
+    .quick-tool-btn{grid-template-columns:30px 1fr 12px}
+    .quick-tool-arrow{display:block}
+  }
+
+
+  /* ===== Phase 6E v5: map controls stay on the RIGHT ===== */
+  .map-tools-card{
+    left:auto !important;
+    right:12px !important;
+    top:88px !important;
+  }
+  .leaflet-top.leaflet-right{
+    top:8px;
+    right:8px;
+  }
+  .leaflet-top.leaflet-right .leaflet-control{
+    margin-top:0;
+    margin-right:0;
+  }
+
+  /*
+    Keep map controls visible when the left tool drawer is open.
+    The drawer occupies the left side; zoom/layers stay available on the right.
+  */
+  .map-shell.drawer-open .map-tools-card{
+    opacity:1 !important;
+    pointer-events:auto !important;
+  }
+  .map-shell.drawer-open .map-view-banner{
+    opacity:0;
+    pointer-events:none;
+  }
+
+  @media(max-width:900px){
+    .map-tools-card{
+      left:auto !important;
+      right:10px !important;
+      top:86px !important;
+    }
+  }
+  @media(max-width:620px){
+    .map-tools-card{
+      left:auto !important;
+      right:8px !important;
+      top:80px !important;
+      width:154px;
+    }
+  }
+
+  /* Evidence view gets a slightly stronger map-view banner for orientation. */
+  body.theme-evidence .map-view-banner{
+    background:rgba(248,245,255,.97);
+    border-color:#a78bfa;
+    box-shadow:0 8px 26px rgba(91,33,182,.15);
+  }
+
+
+  /* ===== Phase 6E v6: final readability polish ===== */
+
+  /*
+    The zoom controls now live on the right, so the active-view badge no longer
+    needs the old 56 px clearance on the left.
+  */
+  .map-view-banner{
+    left:12px !important;
+  }
+
+  /*
+    Increase typography for judge/demo readability without changing map scale.
+    Most existing typography used small rem values, so a slightly larger root
+    plus targeted minimums makes the interface considerably easier to scan.
+  */
+  html{
+    font-size:18px;
+  }
+
+  .brand h1{font-size:1.16rem !important}
+  .brand span{font-size:.72rem !important}
+
+  .header-search input{font-size:.84rem !important}
+  .search-btn{font-size:.76rem !important}
+  .pilot-badge,.header-btn{font-size:.72rem !important}
+
+  .panel h3{
+    font-size:.68rem !important;
+    letter-spacing:.8px;
+  }
+
+  .view-btn .label{
+    font-size:.82rem !important;
+    line-height:1.18;
+  }
+  .view-btn .sub{
+    font-size:.64rem !important;
+    line-height:1.32;
+    margin-top:2px;
+  }
+
+  .quick-tool-btn b{
+    font-size:.75rem !important;
+    line-height:1.2;
+  }
+  .quick-tool-btn small{
+    font-size:.60rem !important;
+    line-height:1.3;
+  }
+
+  .map-view-banner strong{
+    font-size:.77rem !important;
+  }
+  .map-view-banner small{
+    font-size:.61rem !important;
+  }
+  .map-tools-toggle{
+    font-size:.72rem !important;
+  }
+
+  .left-tool-kicker{font-size:.58rem !important}
+  .left-tool-drawer-head h2{font-size:1.02rem !important}
+  .drawer-section-title{font-size:.82rem !important}
+  .drawer-help{font-size:.68rem !important}
+  .legend-item{font-size:.74rem !important}
+  .rank-name{font-size:.76rem !important}
+  .rank-sub{font-size:.64rem !important}
+  .rank-score{font-size:.90rem !important}
+
+  .detail-hint{
+    font-size:.84rem !important;
+  }
+  .detail-title-row h2{
+    font-size:1.18rem !important;
+  }
+  .locality-context{
+    font-size:.70rem !important;
+  }
+  .micro{
+    font-size:.68rem !important;
+    line-height:1.5;
+  }
+  .score-copy .label{
+    font-size:.67rem !important;
+  }
+  .score-copy .priority{
+    font-size:1.02rem !important;
+  }
+  .score-copy .decision{
+    font-size:.70rem !important;
+  }
+  .quick-stat .k{
+    font-size:.61rem !important;
+  }
+  .quick-stat .v{
+    font-size:.88rem !important;
+  }
+
+  .ai-profile .label{font-size:.64rem !important}
+  .ai-profile .value{font-size:.82rem !important}
+
+  .detail-accordion>summary{
+    font-size:.78rem !important;
+    min-height:47px;
+  }
+  .accordion-body{
+    font-size:.75rem;
+    line-height:1.5;
+  }
+  .stat-row{
+    font-size:.76rem !important;
+    padding:8px 0;
+  }
+  .metric-label{
+    font-size:.74rem !important;
+  }
+
+  .badge{
+    font-size:.66rem !important;
+  }
+
+  .district-preset-btn,
+  .preset-btn,
+  .simulate-btn{
+    font-size:.72rem !important;
+  }
+
+  .sim-input label{
+    font-size:.64rem !important;
+  }
+  .sim-input input{
+    font-size:.80rem !important;
+  }
+
+  /*
+    Give the two information columns a touch more width to accommodate the
+    larger text, while preserving the map as the dominant visual.
+  */
+  @media (min-width:1200px){
+    .sidebar{
+      width:245px !important;
+      flex-basis:245px !important;
+    }
+    .detail-panel{
+      width:390px !important;
+      flex-basis:390px !important;
+    }
+  }
+
+  @media(max-width:900px){
+    html{font-size:17px}
+    .map-view-banner{left:10px !important}
+  }
 
 </style>
 </head>
-<body>
+<body class="theme-general">
 <header>
-  <div>
-    <h1>📡 Signal Lah</h1>
-    <span>GeoAI Connectivity Impact Simulator · V2</span>
+  <div class="brand">
+    <div class="brand-mark">📡</div>
+    <div><h1>Signal Lah</h1><span>GeoAI Connectivity Impact Simulator</span></div>
   </div>
-  <div class="pilot-badge">📍 Kuala Selangor, Malaysia</div>
+
+  <div class="header-search">
+    <div class="header-search-row">
+      <span class="header-search-icon">⌕</span>
+      <input id="map-search" list="search-options" type="text" placeholder="Search a locality or grid ID — e.g. Ijok or KS_248" onkeydown="if(event.key==='Enter') runMapSearch()">
+      <button class="search-btn" onclick="runMapSearch()">Search</button>
+    </div>
+    <datalist id="search-options"></datalist>
+    <div id="search-status" class="search-status"></div>
+  </div>
+
+  <div class="header-actions">
+    <div class="pilot-badge">📍 Kuala Selangor</div>
+    <button class="header-btn" onclick="openInfoModal()">ⓘ How it works</button>
+  </div>
 </header>
 
 <div class="main">
-  <div class="sidebar">
-    <div class="panel">
-      <h3>Map View</h3>
-      <div class="view-btn active" data-view="general" onclick="setViewMode('general', this)">
-        <span class="icon">🌐</span><div><div class="label">General Priority</div><div class="sub">Population × connectivity gap</div></div>
-      </div>
-      <div class="view-btn" data-view="education" onclick="setViewMode('education', this)">
-        <span class="icon">📚</span><div><div class="label">Education Priority</div><div class="sub">Population + mapped schools</div></div>
-      </div>
-      <div class="view-btn" data-view="healthcare" onclick="setViewMode('healthcare', this)">
-        <span class="icon">🏥</span><div><div class="label">Healthcare Priority</div><div class="sub">Population + mapped healthcare</div></div>
-      </div>
-      <div class="view-btn" data-view="evidence" onclick="setViewMode('evidence', this)">
-        <span class="icon">🔎</span><div><div class="label">Evidence Gaps</div><div class="sub">Where network observations are missing</div></div>
-      </div>
-      <div class="view-btn" data-view="geoai" onclick="setViewMode('geoai', this)">
-        <span class="icon">🤖</span><div><div class="label">GeoAI Profiles</div><div class="sub">K-Means connectivity-community patterns</div></div>
+  <aside class="sidebar">
+    <div class="panel view-panel">
+      <h3>Choose a map view</h3>
+      <div class="view-list">
+        <div class="view-btn active" data-view="general" onclick="setViewMode('general', this)">
+          <span class="icon">🌐</span><div><div class="label">General Priority</div><div class="sub">Overall community impact</div></div>
+        </div>
+        <div class="view-btn" data-view="education" onclick="setViewMode('education', this)">
+          <span class="icon">📚</span><div><div class="label">Education Priority</div><div class="sub">Schools + population</div></div>
+        </div>
+        <div class="view-btn" data-view="healthcare" onclick="setViewMode('healthcare', this)">
+          <span class="icon">🏥</span><div><div class="label">Healthcare Priority</div><div class="sub">Healthcare + population</div></div>
+        </div>
+        <div class="view-btn" data-view="evidence" onclick="setViewMode('evidence', this)">
+          <span class="icon">🔎</span><div><div class="label">Evidence Gaps</div><div class="sub">Missing network observations</div></div>
+        </div>
+        <div class="view-btn" data-view="geoai" onclick="setViewMode('geoai', this)">
+          <span class="icon">🤖</span><div><div class="label">GeoAI Profiles</div><div class="sub">Learned area patterns</div></div>
+        </div>
       </div>
     </div>
 
-    <div class="panel">
-      <h3>Explore Map</h3>
-      <div class="search-row">
-        <input id="map-search" list="search-options" type="text" placeholder="Search locality or grid ID" onkeydown="if(event.key==='Enter') runMapSearch()">
-        <button class="search-btn" onclick="runMapSearch()">Go</button>
+    <div class="panel quick-tools-panel">
+      <h3>Explore more</h3>
+      <div class="quick-tool-list">
+        <button class="quick-tool-btn" onclick="openLeftTool('legend')">
+          <span class="quick-tool-icon">🎨</span>
+          <span><b>Priority legend</b><small>Understand the map colours</small></span>
+          <span class="quick-tool-arrow">›</span>
+        </button>
+        <button class="quick-tool-btn" onclick="openLeftTool('ranking')">
+          <span class="quick-tool-icon">🏆</span>
+          <span><b>Top 5 areas</b><small>See the current priority ranking</small></span>
+          <span class="quick-tool-arrow">›</span>
+        </button>
+        <button class="quick-tool-btn" onclick="openLeftTool('district')">
+          <span class="quick-tool-icon">⚡</span>
+          <span><b>District what-if</b><small>Explore district-wide scenarios</small></span>
+          <span class="quick-tool-arrow">›</span>
+        </button>
       </div>
-      <datalist id="search-options"></datalist>
-      <div id="search-status" class="search-status">Search examples: Ijok, Bestari Jaya, KS_248.</div>
-      <div class="overlay-list">
-        <label class="overlay-toggle"><span class="left"><input id="toggle-schools" type="checkbox" onchange="toggleFacilityLayer('schools', this.checked)"><span class="facility-key" style="background:#60b3ff"></span>Mapped schools</span><span id="school-overlay-count" class="overlay-count">105</span></label>
-        <label class="overlay-toggle"><span class="left"><input id="toggle-healthcare" type="checkbox" onchange="toggleFacilityLayer('healthcare', this.checked)"><span class="facility-key" style="background:#06d6a0"></span>Mapped healthcare</span><span id="health-overlay-count" class="overlay-count">64</span></label>
+    </div>
+  </aside>
+
+  <div class="map-shell">
+    <div id="map"></div>
+
+    <aside class="left-tool-drawer" id="left-tool-drawer" aria-hidden="true">
+      <div class="left-tool-drawer-head">
+        <div>
+          <div class="left-tool-kicker">MAP TOOL</div>
+          <h2 id="left-tool-drawer-title">Priority legend</h2>
+        </div>
+        <button class="left-tool-close" onclick="closeLeftTool()" aria-label="Close panel">×</button>
       </div>
-      <div class="map-tool-row"><span class="micro">Facility layers show OSM-mapped features used by the analysis.</span><button class="reset-btn" onclick="resetMapView()">Reset map</button></div>
-    </div>
 
-    <div class="panel">
-      <h3 id="legend-title">Priority Legend</h3>
-      <div id="legend"></div>
-    </div>
+      <div class="left-tool-drawer-body">
+        <section class="left-tool-section active" id="left-tool-legend">
+          <div id="legend" class="drawer-content"></div>
+        </section>
 
-    <div class="panel">
-      <h3 id="ranking-title">Top 5 Priority Areas</h3>
-      <div id="ranking"></div>
-    </div>
-    <div class="panel">
-      <h3>District What-If</h3>
-      <div class="district-presets">
-        <button class="district-preset-btn active" data-district-preset="typical_observed" onclick="setDistrictPreset('typical_observed', this)">Typical</button>
-        <button class="district-preset-btn" data-district-preset="strong_observed" onclick="setDistrictPreset('strong_observed', this)">Strong</button>
-        <button class="district-preset-btn" data-district-preset="top_observed" onclick="setDistrictPreset('top_observed', this)">Top</button>
+        <section class="left-tool-section" id="left-tool-ranking">
+          <div class="drawer-section-title" id="ranking-title">Top 5 priority areas</div>
+          <div id="ranking" class="drawer-content"></div>
+        </section>
+
+        <section class="left-tool-section" id="left-tool-district">
+          <div class="drawer-section-title">District-wide connectivity scenario</div>
+          <p class="drawer-help">Compare empirical connectivity outcomes across measured cells in Kuala Selangor.</p>
+          <div class="district-presets">
+            <button class="district-preset-btn active" data-district-preset="typical_observed" onclick="setDistrictPreset('typical_observed', this)">Typical</button>
+            <button class="district-preset-btn" data-district-preset="strong_observed" onclick="setDistrictPreset('strong_observed', this)">Strong</button>
+            <button class="district-preset-btn" data-district-preset="top_observed" onclick="setDistrictPreset('top_observed', this)">Top</button>
+          </div>
+          <div id="district-summary" class="micro">Loading district summary…</div>
+        </section>
       </div>
-      <div id="district-summary" class="micro">Loading district scenario summary…</div>
+    </aside>
+    <div class="map-view-banner" id="map-view-banner">
+      <span class="map-view-dot"></span>
+      <div><strong>General Priority</strong><small>Overall community impact</small></div>
     </div>
-
-    <div class="panel">
-      <h3>Model Guardrails</h3>
-      <div class="micro">Priority is relative within Kuala Selangor, not a regulatory service classification. Missing Ookla observations are shown as Evidence Gaps rather than assumed to be poor or good connectivity.</div>
+    <div class="map-tools-card" id="map-tools-card">
+      <button class="map-tools-toggle" onclick="toggleMapToolsPanel()" aria-expanded="false">
+        <span>🗺️ Map layers</span><span id="map-tools-arrow">⌄</span>
+      </button>
+      <div class="map-tools-body" id="map-tools-body">
+        <label class="map-layer-row"><span><input id="toggle-schools" type="checkbox" onchange="toggleFacilityLayer('schools', this.checked)"><span class="facility-key" style="background:#4f9ef8"></span>Schools</span><b id="school-overlay-count">105</b></label>
+        <label class="map-layer-row"><span><input id="toggle-healthcare" type="checkbox" onchange="toggleFacilityLayer('healthcare', this.checked)"><span class="facility-key" style="background:#14a47e"></span>Healthcare</span><b id="health-overlay-count">64</b></label>
+        <button class="map-reset-inline" onclick="resetMapView()">↺ Reset map view</button>
+      </div>
     </div>
   </div>
 
-  <div id="map"></div>
+  <aside class="detail-panel" id="detail-panel">
+    <div class="detail-hint"><strong>Select a map cell</strong><br>You'll get a simple summary first. Open the sections only when you want more detail or to run a what-if scenario.</div>
+  </aside>
+</div>
 
-  <div class="detail-panel" id="detail-panel">
-    <p class="detail-hint">👆 Click an analysis cell to inspect its observed connectivity, community exposure, GeoAI profile and run a what-if intervention.</p>
+<div class="modal-backdrop" id="info-modal" onclick="if(event.target===this) closeInfoModal()">
+  <div class="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-title">
+    <div class="modal-head"><h2 id="info-title">How Signal Lah works</h2><button class="modal-close" onclick="closeInfoModal()">×</button></div>
+    <div class="modal-body">
+      <div class="flow-grid">
+        <div class="flow-step"><div class="n">1</div><div class="t">Observe</div><div class="s">Ookla network measurements</div></div>
+        <div class="flow-step"><div class="n">2</div><div class="t">Combine</div><div class="s">Population + mapped services</div></div>
+        <div class="flow-step"><div class="n">3</div><div class="t">Prioritise</div><div class="s">Transparent relative impact scores</div></div>
+        <div class="flow-step"><div class="n">4</div><div class="t">Explore</div><div class="s">GeoAI profiles + what-if outcomes</div></div>
+      </div>
+      <div class="modal-section"><h3>What the GeoAI does</h3><p>K-Means groups observed cells into recurring connectivity-community profiles. It is descriptive decision support; the priority score remains transparent and separate from the AI model.</p></div>
+      <div class="modal-section"><h3>How to use the map</h3><p>Choose a priority lens, search a locality or grid, and click a cell. The first screen shows only the key decision information. Expand the lower sections for network evidence, community context, model details, or the what-if simulator.</p></div>
+      <div class="modal-section"><h3>Responsible-use guardrails</h3><ul><li>Priority is relative within Kuala Selangor, not a regulatory service classification.</li><li>No Ookla observation is treated as an Evidence Gap, not as proof of good or poor connectivity.</li><li>School and healthcare counts are OpenStreetMap-mapped facilities, not official administrative totals.</li><li>What-if scenarios describe hypothetical connectivity outcomes, not tower placement or RF propagation predictions.</li><li>GeoAI clusters are descriptive profiles, not ground-truth labels.</li></ul></div>
+    </div>
   </div>
 </div>
 
 <script>
+
+function openLeftTool(tool) {
+  const drawer = document.getElementById('left-tool-drawer');
+  const shell = document.querySelector('.map-shell');
+  const titles = {
+    legend: document.getElementById('legend-title')?.textContent || 'Priority legend',
+    ranking: document.getElementById('ranking-title')?.textContent || 'Top 5 areas',
+    district: 'District what-if'
+  };
+
+  document.querySelectorAll('.left-tool-section').forEach(section => {
+    section.classList.toggle('active', section.id === `left-tool-${tool}`);
+  });
+
+  document.getElementById('left-tool-drawer-title').textContent = titles[tool] || 'Map tool';
+  drawer.classList.add('open');
+  drawer.setAttribute('aria-hidden', 'false');
+  shell?.classList.add('drawer-open');
+}
+
+function closeLeftTool() {
+  const drawer = document.getElementById('left-tool-drawer');
+  const shell = document.querySelector('.map-shell');
+  drawer?.classList.remove('open');
+  drawer?.setAttribute('aria-hidden', 'true');
+  shell?.classList.remove('drawer-open');
+}
+
+// Escape closes the map-tool drawer.
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeLeftTool();
+});
+
 let geojsonData = null;
 let scenarioPresets = null;
 let simulatorConfig = null;
@@ -264,8 +1021,9 @@ const PROFILE_COLORS = {
   'Unclassified - Evidence Gap':'#3b3f50'
 };
 
-const map = L.map('map', { preferCanvas:true }).setView([3.38, 101.29], 11);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+const map = L.map('map', { preferCanvas:true, zoomControl:false }).setView([3.38, 101.29], 11);
+L.control.zoom({ position:'topright' }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   attribution: '© OpenStreetMap © CARTO', maxZoom: 18
 }).addTo(map);
 
@@ -347,13 +1105,16 @@ function computeEvidenceExposureThresholds() {
 }
 
 function evidenceColor(p) {
-  if (isObserved(p)) return '#222633';
+  // Grey means the cell HAS observed network data.
+  // Purple means the cell is an Evidence Gap.
+  // Darker purple = greater community/service exposure among Evidence Gaps.
+  if (isObserved(p)) return '#cbd5e1';
   const x = Number(p.evidence_gap_exposure || 0);
-  if (!evidenceExposureThresholds) return '#8b5cf6';
-  if (x >= evidenceExposureThresholds.q75) return '#c084fc';
-  if (x >= evidenceExposureThresholds.q50) return '#8b5cf6';
-  if (x >= evidenceExposureThresholds.q25) return '#6d28d9';
-  return '#4c1d95';
+  if (!evidenceExposureThresholds) return '#7c3aed';
+  if (x >= evidenceExposureThresholds.q75) return '#5b21b6';
+  if (x >= evidenceExposureThresholds.q50) return '#7c3aed';
+  if (x >= evidenceExposureThresholds.q25) return '#a78bfa';
+  return '#ddd6fe';
 }
 
 function styleFeature(feature) {
@@ -365,12 +1126,25 @@ function styleFeature(feature) {
     fillOpacity = isObserved(p) ? 0.68 : 0.28;
   } else if (currentView === 'evidence') {
     fillColor = evidenceColor(p);
-    fillOpacity = isObserved(p) ? 0.12 : 0.78;
+    // Keep ALL grid cells visible so the Kuala Selangor study footprint is obvious.
+    // Evidence Gaps are purple; measured cells remain neutral grey.
+    fillOpacity = isObserved(p) ? 0.62 : 0.88;
   } else if (currentView === 'geoai') {
     fillColor = PROFILE_COLORS[p.ai_profile] || '#3b3f50';
     fillOpacity = p.ai_cluster_id === null || p.ai_cluster_id === undefined ? 0.28 : 0.68;
   }
-  return { fillColor, fillOpacity, color:'#ffffff', weight:0.5, opacity:0.4 };
+
+  if (currentView === 'evidence') {
+    return {
+      fillColor,
+      fillOpacity,
+      color: isObserved(p) ? '#f8fafc' : '#f3e8ff',
+      weight: 0.8,
+      opacity: 0.95
+    };
+  }
+
+  return { fillColor, fillOpacity, color:'#ffffff', weight:0.7, opacity:0.72 };
 }
 
 function renderMap() {
@@ -503,7 +1277,7 @@ function resetMapView() {
 }
 
 function updateLegend() {
-  const title = document.getElementById('legend-title');
+  const title = document.getElementById('legend-title') || document.getElementById('left-tool-drawer-title');
   const legend = document.getElementById('legend');
   if (['general','education','healthcare'].includes(currentView)) {
     title.textContent = 'Priority Legend';
@@ -515,11 +1289,12 @@ function updateLegend() {
   } else if (currentView === 'evidence') {
     title.textContent = 'Evidence Gap Legend';
     legend.innerHTML = `
-      <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>Highest exposure quartile among Evidence Gaps</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Upper-middle exposure quartile</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#6d28d9"></div>Lower-middle exposure quartile</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4c1d95"></div>Lowest exposure quartile</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#222633"></div>Has observed network data</div>`;
+      <div class="legend-item"><div class="legend-dot" style="background:#5b21b6"></div><strong>Highest exposure</strong> Evidence Gaps</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>Upper-middle exposure Evidence Gaps</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>Lower-middle exposure Evidence Gaps</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ddd6fe"></div>Lowest exposure Evidence Gaps</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#cbd5e1;border:1px solid #94a3b8"></div><strong>Measured cell</strong> · observed Ookla data available</div>
+      <div class="micro" style="margin-top:10px;line-height:1.45"><strong>How to read this view:</strong> the full grey + purple grid is the Kuala Selangor study area. Purple cells are places where network evidence is missing; darker purple means greater community/service exposure within those Evidence Gaps.</div>`;
   } else {
     title.textContent = 'GeoAI Profile Legend';
     legend.innerHTML = `
@@ -630,54 +1405,85 @@ function showDetail(p) {
   const pop = p.population === null ? 'Unknown' : fmtNum(p.population);
   const profileDesc = p.ai_profile_description || '';
   const interpretation = p.ai_profile_interpretation || '';
+  const locality = localityDisplayName(p);
+  const scoreText = score === null ? '—' : fmtNum(score,1);
+  const prioText = prio || 'Evidence Gap';
 
   document.getElementById('detail-panel').innerHTML = `
-    <div class="detail-title-row">
-      <div><h2 class="locality-heading">${escapeHTML(localityDisplayName(p))}</h2><div class="locality-context">${localityMeta(p)}</div><div class="micro">Dataset ${p.dataset_version || '2.0.0'} · ${p.study_area || 'Kuala Selangor'}</div></div>
-      <div>${evidenceBadge(p.evidence_label)}</div>
+    <div class="detail-card">
+      <div class="detail-title-row">
+        <div><h2 class="locality-heading">${escapeHTML(locality)}</h2><div class="locality-context">${localityMeta(p)}</div></div>
+        <div>${evidenceBadge(p.evidence_label)}</div>
+      </div>
+
+      <div class="hero-score">
+        <div class="score-orb" style="border-color:${priorityColor(prio)}22"><div class="num" style="color:${priorityColor(prio)}">${scoreText}</div></div>
+        <div class="score-copy">
+          <div class="label">${mode} impact priority</div>
+          <div class="prio" style="color:${priorityColor(prio)}">${escapeHTML(prioText)}</div>
+          <div class="decision">${decision ? escapeHTML(decision) : (observed ? 'Priority is relative within the Kuala Selangor pilot.' : 'No observed network baseline for this cell.')}</div>
+        </div>
+      </div>
+
+      <div class="quick-stats">
+        <div class="quick-stat"><div class="k">Population</div><div class="v">${pop}</div></div>
+        <div class="quick-stat"><div class="k">Network tests</div><div class="v">${fmtNum(p.network_tests || 0)}</div></div>
+        <div class="quick-stat"><div class="k">Services</div><div class="v">${fmtNum((p.school_count||0)+(p.healthcare_count||0))}</div></div>
+      </div>
+
+      <div class="profile-chip"><div class="k">GeoAI profile</div><div class="v">${escapeHTML(p.ai_profile || 'Unclassified')}</div></div>
+      ${!observed ? `<div class="why-box warning-box"><strong>Evidence Gap:</strong> no observed Ookla measurements are available here, so Signal Lah does not infer whether connectivity is good or poor.</div>` : ''}
     </div>
 
-    <div class="score-big">
-      <div class="num" style="color:${priorityColor(prio)}">${score === null ? '—' : fmtNum(score,1)}</div>
-      <div class="label">${mode} impact score</div>
-      <div style="margin-top:4px">${priorityBadge(prio)}</div>
-    </div>
+    <details class="detail-accordion">
+      <summary>Compare General, Education & Healthcare</summary>
+      <div class="accordion-body"><div style="height:9px"></div><div class="mode-grid">${modeCards(p)}</div></div>
+    </details>
 
-    <div class="mode-grid">${modeCards(p)}</div>
+    <details class="detail-accordion">
+      <summary>${observed ? 'Observed network performance' : 'Network evidence status'}</summary>
+      <div class="accordion-body">
+        ${observed ? `
+          <div class="stat-row"><span>Download</span><span class="stat-val">${fmtNum(p.avg_download_mbps,1)} Mbps</span></div>
+          <div class="stat-row"><span>Upload</span><span class="stat-val">${fmtNum(p.avg_upload_mbps,1)} Mbps</span></div>
+          <div class="stat-row"><span>Latency</span><span class="stat-val">${fmtNum(p.avg_latency_ms,1)} ms</span></div>
+          <div class="stat-row"><span>Connectivity gap score</span><span class="stat-val">${fmtNum(p.connectivity_gap_score,1)}</span></div>`
+          : `<div class="why-box warning-box">No measured network baseline is available. This cell remains an Evidence Gap until observations are collected.</div>`}
+      </div>
+    </details>
 
-    ${decision ? `<div class="why-box ${decision.toLowerCase().includes('validate') ? 'warning-box' : ''}"><strong>Decision cue:</strong> ${decision}</div>` : ''}
+    <details class="detail-accordion">
+      <summary>Community & essential services</summary>
+      <div class="accordion-body">
+        <div class="stat-row"><span>Estimated population</span><span class="stat-val">${pop}</span></div>
+        <div class="stat-row"><span>Mapped schools</span><span class="stat-val">${p.school_count || 0}</span></div>
+        <div class="stat-row"><span>Mapped healthcare</span><span class="stat-val">${p.healthcare_count || 0}</span></div>
+        <div class="stat-row"><span>Hospitals / Clinics</span><span class="stat-val">${p.hospital_count || 0} / ${p.clinic_count || 0}</span></div>
+      </div>
+    </details>
 
-    <div class="ai-profile">
-      <div class="label">🤖 GeoAI Profile</div>
-      <div class="value">${p.ai_profile || '—'}</div>
-      <div class="desc">${profileDesc}${interpretation ? '<br><strong>Interpretation:</strong> ' + interpretation : ''}</div>
-    </div>
+    <details class="detail-accordion">
+      <summary>Location context</summary>
+      <div class="accordion-body">
+        <div class="stat-row"><span>Nearest mapped locality</span><span class="stat-val">${p.nearest_locality ? `${escapeHTML(p.nearest_locality)} · ${fmtNum(p.nearest_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
+        <div class="stat-row"><span>Locality type</span><span class="stat-val">${p.nearest_locality_type ? escapeHTML(p.nearest_locality_type) : '—'}</span></div>
+        <div class="stat-row"><span>Nearest major locality</span><span class="stat-val">${p.nearest_major_locality ? `${escapeHTML(p.nearest_major_locality)} · ${fmtNum(p.nearest_major_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
+        ${Number(p.nearest_locality_distance_km) > 10 ? `<div class="micro" style="margin-top:6px">The nearest mapped settlement is relatively far away. This name is geographic context, not an administrative assignment.</div>` : ''}
+      </div>
+    </details>
 
-    <hr class="section-divider">
-    <div class="section-title">Observed Network Performance</div>
-    ${observed ? `
-      <div class="stat-row"><span>Download</span><span class="stat-val">${fmtNum(p.avg_download_mbps,1)} Mbps</span></div>
-      <div class="stat-row"><span>Upload</span><span class="stat-val">${fmtNum(p.avg_upload_mbps,1)} Mbps</span></div>
-      <div class="stat-row"><span>Latency</span><span class="stat-val">${fmtNum(p.avg_latency_ms,1)} ms</span></div>
-      <div class="stat-row"><span>Connectivity gap score</span><span class="stat-val">${fmtNum(p.connectivity_gap_score,1)}</span></div>`
-      : `<div class="why-box warning-box">⚠️ <strong>Evidence Gap.</strong><br>No observed Ookla measurements are available for this cell. The map does not label its connectivity as good or bad.</div>`}
+    <details class="detail-accordion">
+      <summary>Why this area?</summary>
+      <div class="accordion-body"><div class="why-box">${generateWhy(p)}</div></div>
+    </details>
 
-    <hr class="section-divider">
-    <div class="section-title">Geographic Context</div>
-    <div class="stat-row"><span>Nearest mapped locality</span><span class="stat-val">${p.nearest_locality ? `${escapeHTML(p.nearest_locality)} · ${fmtNum(p.nearest_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
-    <div class="stat-row"><span>Locality type</span><span class="stat-val">${p.nearest_locality_type ? escapeHTML(p.nearest_locality_type) : '—'}</span></div>
-    <div class="stat-row"><span>Nearest major locality</span><span class="stat-val">${p.nearest_major_locality ? `${escapeHTML(p.nearest_major_locality)} · ${fmtNum(p.nearest_major_locality_distance_km,1)} km` : 'Unavailable'}</span></div>
-    ${Number(p.nearest_locality_distance_km) > 10 ? `<div class="micro far-locality" style="margin-top:5px">This cell is relatively far from the nearest mapped settlement point; locality names are geographic context, not administrative assignment.</div>` : ''}
-
-    <hr class="section-divider">
-    <div class="section-title">Community & Evidence</div>
-    <div class="stat-row"><span>Estimated population</span><span class="stat-val">${pop}</span></div>
-    <div class="stat-row"><span>Mapped schools</span><span class="stat-val">${p.school_count || 0}</span></div>
-    <div class="stat-row"><span>Mapped healthcare</span><span class="stat-val">${p.healthcare_count || 0}</span></div>
-    <div class="stat-row"><span>Hospitals / Clinics</span><span class="stat-val">${p.hospital_count || 0} / ${p.clinic_count || 0}</span></div>
-    <div class="stat-row"><span>Network tests</span><span class="stat-val">${p.network_tests || 0}</span></div>
-
-    <div class="why-box">💡 <strong>Why this area?</strong><br>${generateWhy(p)}</div>
+    <details class="detail-accordion">
+      <summary>About this GeoAI profile</summary>
+      <div class="accordion-body">
+        <div style="padding-top:8px;font-size:.72rem;font-weight:800;color:#593a91">${escapeHTML(p.ai_profile || 'Unclassified')}</div>
+        <div class="micro" style="margin-top:5px">${escapeHTML(profileDesc)}${interpretation ? '<br><strong>Interpretation:</strong> ' + escapeHTML(interpretation) : ''}</div>
+      </div>
+    </details>
 
     ${buildSimulator(p)}
   `;
@@ -690,28 +1496,33 @@ function buildSimulator(p) {
   const lat = observed ? Number(p.avg_latency_ms).toFixed(1) : '';
   const fieldPrefix = observed ? '' : 'Hypothetical ';
   const simulatorNote = observed
-    ? 'Change connectivity outcomes while holding population and mapped essential services constant. Presets are empirical study-area targets, not regulatory standards.'
-    : '<strong>No observed connectivity baseline is available.</strong> Choose a preset or enter a hypothetical connectivity outcome. Signal Lah will show the scenario result, but it will not claim a before→after improvement.';
+    ? 'Test a hypothetical connectivity outcome while population and mapped essential services stay fixed. Presets are empirical study-area targets, not regulatory standards.'
+    : '<strong>No observed baseline.</strong> Choose a preset or enter a hypothetical outcome. The result is a scenario only; no before→after improvement is claimed.';
   return `
-    <div class="simulator">
-      <h3>🧪 What-If Connectivity Intervention</h3>
-      <div class="sim-sub">${simulatorNote}</div>
-      <div class="preset-row">
-        <button class="preset-btn" onclick="runPreset('typical_observed')">Typical</button>
-        <button class="preset-btn" onclick="runPreset('strong_observed')">Strong</button>
-        <button class="preset-btn" onclick="runPreset('top_observed')">Top</button>
+    <details class="detail-accordion">
+      <summary>🧪 Run a what-if connectivity scenario</summary>
+      <div class="accordion-body">
+        <div class="simulator">
+          <h3>What-If Connectivity Intervention</h3>
+          <div class="sim-sub">${simulatorNote}</div>
+          <div class="preset-row">
+            <button class="preset-btn" onclick="runPreset('typical_observed')">Typical</button>
+            <button class="preset-btn" onclick="runPreset('strong_observed')">Strong</button>
+            <button class="preset-btn" onclick="runPreset('top_observed')">Top</button>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>${fieldPrefix}Download Mbps</label><input id="sim-download" type="number" min="0" step="0.1" value="${dl}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
+            <div class="field"><label>${fieldPrefix}Upload Mbps</label><input id="sim-upload" type="number" min="0" step="0.1" value="${ul}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
+            <div class="field"><label>${fieldPrefix}Latency ms</label><input id="sim-latency" type="number" min="0.1" step="0.1" value="${lat}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
+          </div>
+          <div class="sim-actions">
+            <label class="check-wrap"><input id="upgrade-only" type="checkbox" ${observed ? 'checked' : 'disabled'}> ${observed ? 'Upgrade-only' : 'No baseline for upgrade-only'}</label>
+            <button class="run-btn" onclick="runCustomScenario()">Run scenario</button>
+          </div>
+          <div id="sim-results" class="sim-results"></div>
+        </div>
       </div>
-      <div class="form-grid">
-        <div class="field"><label>${fieldPrefix}Download Mbps</label><input id="sim-download" type="number" min="0" step="0.1" value="${dl}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
-        <div class="field"><label>${fieldPrefix}Upload Mbps</label><input id="sim-upload" type="number" min="0" step="0.1" value="${ul}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
-        <div class="field"><label>${fieldPrefix}Latency ms</label><input id="sim-latency" type="number" min="0.1" step="0.1" value="${lat}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
-      </div>
-      <div class="sim-actions">
-        <label class="check-wrap"><input id="upgrade-only" type="checkbox" ${observed ? 'checked' : 'disabled'}> ${observed ? 'Upgrade-only' : 'Upgrade-only unavailable without baseline'}</label>
-        <button class="run-btn" onclick="runCustomScenario()">Simulate</button>
-      </div>
-      <div id="sim-results" class="sim-results"></div>
-    </div>`;
+    </details>`;
 }
 
 function percentileForValue(value, reference) {
@@ -916,7 +1727,7 @@ function renderDistrictSummary() {
   const pct = highBefore ? (movedOutHigh / highBefore) * 100 : 0;
 
   host.innerHTML = `
-    <div style="font-size:.78rem;font-weight:700;color:#e0e0e0;margin-bottom:3px">${preset.label} · ${lensLabel}</div>
+    <div style="font-size:.78rem;font-weight:700;color:#263348;margin-bottom:3px">${preset.label} · ${lensLabel}</div>
     <div class="micro">Empirical observed target; upgrade-only is applied to measured cells.</div>
     <div class="district-kpi">
       <div class="district-kpi-card"><div class="k">High before</div><div class="v">${highBefore}</div></div>
@@ -934,8 +1745,47 @@ function renderDistrictSummary() {
     <div class="scenario-note" style="margin-top:8px">These are cells whose modelled priority changes under a hypothetical connectivity outcome. Population and facility counts are context, not guaranteed beneficiaries. This is not an RF/tower-propagation prediction.</div>`;
 }
 
+function openInfoModal() {
+  const m = document.getElementById('info-modal');
+  if (m) m.classList.add('show');
+}
+function closeInfoModal() {
+  const m = document.getElementById('info-modal');
+  if (m) m.classList.remove('show');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeInfoModal(); });
+
+const VIEW_THEME_META = {
+  general: { className:'theme-general', label:'General Priority', sub:'Overall community impact' },
+  education: { className:'theme-education', label:'Education Priority', sub:'Schools + population' },
+  healthcare: { className:'theme-healthcare', label:'Healthcare Priority', sub:'Healthcare + population' },
+  evidence: { className:'theme-evidence', label:'Evidence Gaps', sub:'Purple = missing evidence · Grey = measured' },
+  geoai: { className:'theme-geoai', label:'GeoAI Profiles', sub:'Learned connectivity-community patterns' }
+};
+
+function applyViewTheme(view) {
+  const meta = VIEW_THEME_META[view] || VIEW_THEME_META.general;
+  document.body.classList.remove('theme-general','theme-education','theme-healthcare','theme-evidence','theme-geoai');
+  document.body.classList.add(meta.className);
+  const banner = document.getElementById('map-view-banner');
+  if (banner) banner.innerHTML = `<span class="map-view-dot"></span><div><strong>${meta.label}</strong><small>${meta.sub}</small></div>`;
+}
+
+function toggleMapToolsPanel() {
+  const card = document.getElementById('map-tools-card');
+  const body = document.getElementById('map-tools-body');
+  const arrow = document.getElementById('map-tools-arrow');
+  if (!card || !body) return;
+  const open = card.classList.toggle('open');
+  body.style.display = open ? 'block' : 'none';
+  if (arrow) arrow.textContent = open ? '⌃' : '⌄';
+  const btn = card.querySelector('.map-tools-toggle');
+  if (btn) btn.setAttribute('aria-expanded', String(open));
+}
+
 function setViewMode(view, el) {
   currentView = view;
+  applyViewTheme(view);
   document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   renderMap();
@@ -964,6 +1814,7 @@ Promise.all([
   computeEvidenceExposureThresholds();
   buildFacilityLayers();
   populateSearchOptions();
+  applyViewTheme(currentView);
   renderMap();
   renderDistrictSummary();
   if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});

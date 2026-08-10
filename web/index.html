@@ -180,9 +180,11 @@ let simulatorConfig = null;
 let currentView = 'general';
 let geojsonLayer = null;
 let selectedCellId = null;
+let evidenceExposureThresholds = null;
 
 const scoreField = { general: 'score_general', education: 'score_education', healthcare: 'score_healthcare' };
 const priorityField = { general: 'priority_general', education: 'priority_education', healthcare: 'priority_healthcare' };
+const decisionField = { general: 'decision_general', education: 'decision_education', healthcare: 'decision_healthcare' };
 const exposureField = { general: 'general_exposure', education: 'education_exposure', healthcare: 'healthcare_exposure_mode' };
 
 const PRIORITY_COLORS = { High:'#ff4757', Medium:'#ffd166', Low:'#06d6a0', 'Evidence Gap':'#3b3f50' };
@@ -208,12 +210,36 @@ function activeImpactMode() { return ['general','education','healthcare'].includ
 function priorityColor(prio) { return PRIORITY_COLORS[prio] || '#3b3f50'; }
 function scoreColor(score, prio) { return prio ? priorityColor(prio) : '#777'; }
 
+function quantile(sortedValues, q) {
+  if (!sortedValues.length) return 0;
+  const pos = (sortedValues.length - 1) * q;
+  const base = Math.floor(pos);
+  const rest = pos - base;
+  return sortedValues[base + 1] !== undefined
+    ? sortedValues[base] + rest * (sortedValues[base + 1] - sortedValues[base])
+    : sortedValues[base];
+}
+
+function computeEvidenceExposureThresholds() {
+  const values = geojsonData.features
+    .filter(f => !isObserved(f.properties))
+    .map(f => Number(f.properties.evidence_gap_exposure))
+    .filter(Number.isFinite)
+    .sort((a,b) => a-b);
+  evidenceExposureThresholds = {
+    q25: quantile(values, 0.25),
+    q50: quantile(values, 0.50),
+    q75: quantile(values, 0.75)
+  };
+}
+
 function evidenceColor(p) {
   if (isObserved(p)) return '#222633';
   const x = Number(p.evidence_gap_exposure || 0);
-  if (x >= 0.55) return '#c084fc';
-  if (x >= 0.40) return '#8b5cf6';
-  if (x >= 0.25) return '#6d28d9';
+  if (!evidenceExposureThresholds) return '#8b5cf6';
+  if (x >= evidenceExposureThresholds.q75) return '#c084fc';
+  if (x >= evidenceExposureThresholds.q50) return '#8b5cf6';
+  if (x >= evidenceExposureThresholds.q25) return '#6d28d9';
   return '#4c1d95';
 }
 
@@ -263,9 +289,10 @@ function updateLegend() {
   } else if (currentView === 'evidence') {
     title.textContent = 'Evidence Gap Legend';
     legend.innerHTML = `
-      <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>Higher community/service exposure</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Moderate exposure</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4c1d95"></div>Lower exposure</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c084fc"></div>Highest exposure quartile among Evidence Gaps</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Upper-middle exposure quartile</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6d28d9"></div>Lower-middle exposure quartile</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4c1d95"></div>Lowest exposure quartile</div>
       <div class="legend-item"><div class="legend-dot" style="background:#222633"></div>Has observed network data</div>`;
   } else {
     title.textContent = 'GeoAI Profile Legend';
@@ -349,15 +376,14 @@ function generateWhy(p) {
     if (Number(p.healthcare_count || 0) > 0) extras.push(`${p.healthcare_count} mapped healthcare facilit${p.healthcare_count>1?'ies':'y'}`);
     return `No Ookla measurements were observed for this cell. Signal Lah therefore does not infer whether connectivity is good or poor.${extras.length ? ' The evidence gap overlaps ' + extras.join(', ') + '.' : ''}`;
   }
-  const gap = Number(p.connectivity_gap_score || 0);
-  const parts = [];
-  if (gap >= 65) parts.push('a comparatively large measured connectivity gap');
-  else if (gap >= 35) parts.push('a moderate measured connectivity gap');
-  else parts.push('comparatively strong measured connectivity');
-  if (Number(p.population || 0) >= 3000) parts.push(`high population exposure (${fmtNum(p.population)} estimated people)`);
-  if (Number(p.school_count || 0) > 0) parts.push(`${p.school_count} mapped school${p.school_count>1?'s':''}`);
-  if (Number(p.healthcare_count || 0) > 0) parts.push(`${p.healthcare_count} mapped healthcare facilit${p.healthcare_count>1?'ies':'y'}`);
-  return 'This cell combines ' + parts.join(', ') + '. Priority and GeoAI profile are shown separately because they answer different questions.';
+  const facts = [
+    `measured connectivity-gap score ${fmtNum(p.connectivity_gap_score,1)}`,
+    p.population === null ? 'population estimate unavailable' : `estimated population ${fmtNum(p.population)}`,
+    `${p.school_count || 0} mapped school${Number(p.school_count || 0) === 1 ? '' : 's'}`,
+    `${p.healthcare_count || 0} mapped healthcare facilit${Number(p.healthcare_count || 0) === 1 ? 'y' : 'ies'}`,
+    `${p.network_tests || 0} observed network test${Number(p.network_tests || 0) === 1 ? '' : 's'}`
+  ];
+  return `Observed facts for this cell: ${facts.join(', ')}. Priority is relative within the Kuala Selangor study area, while the GeoAI profile is a separate descriptive pattern.`;
 }
 
 function modeCards(p) {
@@ -373,6 +399,7 @@ function showDetail(p) {
   const mode = activeImpactMode();
   const score = p[scoreField[mode]];
   const prio = p[priorityField[mode]];
+  const decision = p[decisionField[mode]] || '';
   const observed = isObserved(p);
   const pop = p.population === null ? 'Unknown' : fmtNum(p.population);
   const profileDesc = p.ai_profile_description || '';
@@ -392,6 +419,8 @@ function showDetail(p) {
 
     <div class="mode-grid">${modeCards(p)}</div>
 
+    ${decision ? `<div class="why-box ${decision.toLowerCase().includes('validate') ? 'warning-box' : ''}"><strong>Decision cue:</strong> ${decision}</div>` : ''}
+
     <div class="ai-profile">
       <div class="label">🤖 GeoAI Profile</div>
       <div class="value">${p.ai_profile || '—'}</div>
@@ -401,9 +430,9 @@ function showDetail(p) {
     <hr class="section-divider">
     <div class="section-title">Observed Network Performance</div>
     ${observed ? `
-      <div class="metric-bar"><div class="metric-label"><span>Download</span><span>${fmtNum(p.avg_download_mbps,1)} Mbps</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_download_mbps)/3)}%;background:#00d4ff"></div></div></div>
-      <div class="metric-bar"><div class="metric-label"><span>Upload</span><span>${fmtNum(p.avg_upload_mbps,1)} Mbps</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_upload_mbps)*2)}%;background:#60b3ff"></div></div></div>
-      <div class="metric-bar"><div class="metric-label"><span>Latency</span><span>${fmtNum(p.avg_latency_ms,1)} ms</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(p.avg_latency_ms))}%;background:#ffd166"></div></div></div>
+      <div class="stat-row"><span>Download</span><span class="stat-val">${fmtNum(p.avg_download_mbps,1)} Mbps</span></div>
+      <div class="stat-row"><span>Upload</span><span class="stat-val">${fmtNum(p.avg_upload_mbps,1)} Mbps</span></div>
+      <div class="stat-row"><span>Latency</span><span class="stat-val">${fmtNum(p.avg_latency_ms,1)} ms</span></div>
       <div class="stat-row"><span>Connectivity gap score</span><span class="stat-val">${fmtNum(p.connectivity_gap_score,1)}</span></div>`
       : `<div class="why-box warning-box">⚠️ <strong>Evidence Gap.</strong><br>No observed Ookla measurements are available for this cell. The map does not label its connectivity as good or bad.</div>`}
 
@@ -423,25 +452,29 @@ function showDetail(p) {
 
 function buildSimulator(p) {
   const observed = isObserved(p);
-  const dl = observed ? Number(p.avg_download_mbps).toFixed(1) : '100';
-  const ul = observed ? Number(p.avg_upload_mbps).toFixed(1) : '20';
-  const lat = observed ? Number(p.avg_latency_ms).toFixed(1) : '22';
+  const dl = observed ? Number(p.avg_download_mbps).toFixed(1) : '';
+  const ul = observed ? Number(p.avg_upload_mbps).toFixed(1) : '';
+  const lat = observed ? Number(p.avg_latency_ms).toFixed(1) : '';
+  const fieldPrefix = observed ? '' : 'Hypothetical ';
+  const simulatorNote = observed
+    ? 'Change connectivity outcomes while holding population and mapped essential services constant. Presets are empirical study-area targets, not regulatory standards.'
+    : '<strong>No observed connectivity baseline is available.</strong> Choose a preset or enter a hypothetical connectivity outcome. Signal Lah will show the scenario result, but it will not claim a before→after improvement.';
   return `
     <div class="simulator">
       <h3>🧪 What-If Connectivity Intervention</h3>
-      <div class="sim-sub">Change connectivity outcomes while holding population and mapped essential services constant. Presets use upgrade-only logic and are empirical study-area targets, not regulatory standards.</div>
+      <div class="sim-sub">${simulatorNote}</div>
       <div class="preset-row">
         <button class="preset-btn" onclick="runPreset('typical_observed')">Typical</button>
         <button class="preset-btn" onclick="runPreset('strong_observed')">Strong</button>
         <button class="preset-btn" onclick="runPreset('top_observed')">Top</button>
       </div>
       <div class="form-grid">
-        <div class="field"><label>Download Mbps</label><input id="sim-download" type="number" min="0" step="0.1" value="${dl}"></div>
-        <div class="field"><label>Upload Mbps</label><input id="sim-upload" type="number" min="0" step="0.1" value="${ul}"></div>
-        <div class="field"><label>Latency ms</label><input id="sim-latency" type="number" min="0.1" step="0.1" value="${lat}"></div>
+        <div class="field"><label>${fieldPrefix}Download Mbps</label><input id="sim-download" type="number" min="0" step="0.1" value="${dl}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
+        <div class="field"><label>${fieldPrefix}Upload Mbps</label><input id="sim-upload" type="number" min="0" step="0.1" value="${ul}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
+        <div class="field"><label>${fieldPrefix}Latency ms</label><input id="sim-latency" type="number" min="0.1" step="0.1" value="${lat}" placeholder="${observed ? '' : 'Enter outcome'}"></div>
       </div>
       <div class="sim-actions">
-        <label class="check-wrap"><input id="upgrade-only" type="checkbox" checked> Upgrade-only</label>
+        <label class="check-wrap"><input id="upgrade-only" type="checkbox" ${observed ? 'checked' : 'disabled'}> ${observed ? 'Upgrade-only' : 'Upgrade-only unavailable without baseline'}</label>
         <button class="run-btn" onclick="runCustomScenario()">Simulate</button>
       </div>
       <div id="sim-results" class="sim-results"></div>
@@ -512,10 +545,14 @@ function simulateBrowser(p, download, upload, latency, upgradeOnly) {
 function runPreset(key) {
   if (!selectedCellId || !scenarioPresets) return;
   const preset = scenarioPresets.presets[key];
+  const f = featureById(selectedCellId);
+  const observed = f ? isObserved(f.properties) : false;
   document.getElementById('sim-download').value = Number(preset.download_mbps).toFixed(1);
   document.getElementById('sim-upload').value = Number(preset.upload_mbps).toFixed(1);
   document.getElementById('sim-latency').value = Number(preset.latency_ms).toFixed(1);
-  document.getElementById('upgrade-only').checked = true;
+  const upgradeBox = document.getElementById('upgrade-only');
+  upgradeBox.checked = observed;
+  upgradeBox.disabled = !observed;
   runScenario(preset.label);
 }
 function runCustomScenario() { runScenario('Custom scenario'); }
@@ -524,11 +561,18 @@ function runScenario(label) {
   const f = featureById(selectedCellId);
   if (!f) return;
   const p = f.properties;
-  const dl = Number(document.getElementById('sim-download').value);
-  const ul = Number(document.getElementById('sim-upload').value);
-  const lat = Number(document.getElementById('sim-latency').value);
+  const dlRaw = document.getElementById('sim-download').value.trim();
+  const ulRaw = document.getElementById('sim-upload').value.trim();
+  const latRaw = document.getElementById('sim-latency').value.trim();
   const upgradeOnly = document.getElementById('upgrade-only').checked;
   try {
+    if (!dlRaw || !ulRaw || !latRaw) {
+      throw new Error('Enter download, upload and latency values, or choose a preset.');
+    }
+    const dl = Number(dlRaw), ul = Number(ulRaw), lat = Number(latRaw);
+    if (![dl, ul, lat].every(Number.isFinite)) {
+      throw new Error('Scenario values must be valid numbers.');
+    }
     const result = simulateBrowser(p, dl, ul, lat, upgradeOnly);
     renderSimulationResult(p, result, label);
   } catch (err) {
@@ -588,6 +632,7 @@ Promise.all([
   geojsonData = data;
   scenarioPresets = presets;
   simulatorConfig = config;
+  computeEvidenceExposureThresholds();
   renderMap();
   if (geojsonLayer && geojsonLayer.getBounds().isValid()) map.fitBounds(geojsonLayer.getBounds(), {padding:[15,15]});
 })

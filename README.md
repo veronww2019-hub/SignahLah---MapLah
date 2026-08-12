@@ -418,7 +418,22 @@ The goal is a reusable **geospatial decision-support workflow**, not a Kuala Sel
 
 ---
 
-## 17. Team
+## 17. AI-Assisted Development Disclosure
+
+Generative AI tools, primarily **ChatGPT**, were used as development aids during the project for:
+
+- code drafting, debugging and troubleshooting;
+- guidance on geospatial data-processing and analysis workflows;
+- assistance with documentation and technical explanations; and
+- preparation and refinement of presentation and submission content.
+
+AI-assisted outputs incorporated into the final project were **reviewed, tested and modified by the team before inclusion**. Final responsibility for the project design, dataset selection, GeoAI methodology, interpretation of results, validation, prototype behaviour and submission decisions remained with the team.
+
+The project's K-Means GeoAI model is a separately implemented machine-learning component trained on the project's processed geospatial dataset; generative AI was used as a development assistant rather than as an autonomous decision-maker within the deployed Signal Lah dashboard.
+
+---
+
+## 18. Team
 
 - **veronww2019** — Lead
 - **jyng0204** — Member
